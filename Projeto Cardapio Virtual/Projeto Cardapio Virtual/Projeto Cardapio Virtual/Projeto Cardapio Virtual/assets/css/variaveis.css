@@ -1,0 +1,25 @@
+:root {
+  /* Cores da logo */
+  --rosa: #f786a3;
+  --rosa-claro: #f1b0be;
+  --turquesa: #3ce4e6;
+  --marrom: #5e4d45;
+  --branco: #ffffff;
+
+  /* Fundo suave (feito só com as cores da paleta) */
+  --fundo: color-mix(in srgb, var(--rosa-claro) 18%, var(--branco));
+
+  /* Tipografia */
+  --fonte: "Nunito", system-ui, sans-serif;
+
+  /* Formas e sombras */
+  --raio: 16px;
+  --raio-pequeno: 10px;
+  --sombra: 0 4px 14px rgba(94, 77, 69, 0.12);
+
+  /* Espaçamentos */
+  --espaco-1: 8px;
+  --espaco-2: 16px;
+  --espaco-3: 24px;
+  --espaco-4: 40px;
+}

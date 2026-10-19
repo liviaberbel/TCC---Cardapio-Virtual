@@ -1,0 +1,230 @@
+/* ---------- Botões ---------- */
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espaco-1);
+  padding: 10px 22px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--rosa);
+  color: var(--branco);
+  text-shadow: 0 1px 2px rgba(94, 77, 69, 0.35);
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.botao--secundario {
+  background: var(--turquesa);
+  color: var(--marrom);
+  text-shadow: none;
+}
+
+.botao--contorno {
+  background: transparent;
+  border-color: var(--marrom);
+  color: var(--marrom);
+  text-shadow: none;
+} 
+
+.botao:hover {
+  transform: translateY(-2px);
+  filter: brightness(0.96);
+}
+
+.botao--secundario {
+  background: var(--turquesa);
+}
+
+.botao--contorno {
+  background: transparent;
+  border-color: var(--marrom);
+}
+
+.botao:disabled {
+  background: var(--rosa-claro);
+  color: var(--marrom);
+  text-shadow: none;
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---------- Selos ---------- */
+.selo {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.selo--disponivel {
+  background: var(--turquesa);
+  color: var(--marrom);
+}
+
+.selo--esgotado {
+  background: var(--marrom);
+  color: var(--branco);
+}
+
+/* ---------- Card de produto ---------- */
+.grade-produtos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--espaco-3);
+}
+
+.card-produto {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--raio);
+  background: var(--branco);
+  box-shadow: var(--sombra);
+}
+
+.card-produto__imagem {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--rosa-claro);
+}
+
+.card-produto__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  padding: var(--espaco-2);
+}
+
+.card-produto__nome {
+  font-size: 1.1rem;
+}
+
+.card-produto__descricao {
+  font-size: 0.9rem;
+}
+
+.card-produto__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--espaco-1);
+}
+
+.card-produto__preco {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+/* Produto esgotado: imagem apagada */
+.card-produto--esgotado .card-produto__imagem {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+/* ---------- Formulários ---------- */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo label {
+  font-weight: 700;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  padding: 10px 14px;
+  border: 2px solid var(--rosa-claro);
+  border-radius: var(--raio-pequeno);
+  background: var(--branco);
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  outline: none;
+  border-color: var(--rosa);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rosa) 25%, transparent);
+}
+
+/* ---------- Grade de campos de formulário ---------- */
+.campos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--espaco-2);
+}
+
+.campo--larga {
+  grid-column: 1 / -1;
+}
+
+.campo textarea {
+  resize: vertical;
+}
+
+@media (max-width: 520px) {
+  .campos {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Campo de busca ---------- */
+.busca {
+  position: relative;
+}
+
+.busca i {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.busca input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 2px solid var(--rosa-claro);
+  border-radius: 999px;
+  background: var(--branco);
+}
+
+.busca input:focus {
+  outline: none;
+  border-color: var(--rosa);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rosa) 25%, transparent);
+}
+
+/* ---------- Selos de status do pedido ---------- */
+.selo--recebido {
+  background: var(--rosa-claro);
+  color: var(--marrom);
+}
+
+.selo--preparo {
+  background: var(--rosa);
+  color: var(--marrom);
+}
+
+.selo--entrega {
+  background: var(--turquesa);
+  color: var(--marrom);
+}
+
+.selo--entregue {
+  background: var(--marrom);
+  color: var(--branco);
+}
+
+.selo--cancelado {
+  border: 2px solid var(--marrom);
+  background: var(--branco);
+  color: var(--marrom);
+}

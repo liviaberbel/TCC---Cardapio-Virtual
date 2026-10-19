@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordelicias da Lari | Cardápio</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <link rel="stylesheet" href="../assets/css/variaveis.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/componentes.css">
+  <link rel="stylesheet" href="../assets/css/cliente.css">
+</head>
+<body>
+
+  <header class="topo">
+    <div class="container topo__conteudo">
+      <a href="index.html" class="topo__logo">
+        <img src="../assets/img/logo/logo.png" alt="Gordelicias da Lari - confeitaria artesanal">
+      </a>
+
+      <nav class="topo__acoes">
+
+        <a href="acompanhar.html" class="botao botao--contorno">
+          <i class="bi bi-bag-check"></i>
+          <span class="botao__texto">Meu pedido</span>
+        </a>
+
+        <a id="btn-whatsapp" class="botao botao--secundario" target="_blank" rel="noopener">
+          <i class="bi bi-whatsapp"></i>
+          <span class="botao__texto">WhatsApp</span>
+        </a>
+
+        <a href="carrinho.html" class="botao carrinho" aria-label="Ver carrinho">
+          <i class="bi bi-cart3"></i>
+          <span class="botao__texto">Carrinho</span>
+          <span id="carrinho-contador" class="carrinho__contador" hidden>0</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="destaque">
+    <div class="container">
+      <h1>Olá, docinho!</h1>
+      <p>Escolha seus doces favoritos e faça seu pedido pelo site.</p>
+      <p class="aviso-horario">
+        <span id="ponto-horario" class="aviso-horario__ponto"></span>
+        <span id="texto-horario"></span>
+      </p>
+    </div>
+  </section>
+
+    <div class="container barra-cardapio">
+        <div class="busca">
+          <i class="bi bi-search"></i>
+          <input type="search" id="busca" placeholder="Buscar doces..." aria-label="Buscar doces">
+        </div>
+        <nav id="menu-categorias" class="menu-categorias" aria-label="Categorias do cardápio"></nav>
+    </div>
+
+        <main id="cardapio" class="container secao-produtos"></main>
+
+  <footer class="rodape">
+    <div class="container">
+      <p>Gordelicias da Lari · Confeitaria artesanal</p>
+    </div>
+  </footer>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/utils.js"></script>
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/utils.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/cliente/cardapio.js"></script>
+    <script src="../assets/js/cliente/cardapio.js"></script>
+</body>
+</html>

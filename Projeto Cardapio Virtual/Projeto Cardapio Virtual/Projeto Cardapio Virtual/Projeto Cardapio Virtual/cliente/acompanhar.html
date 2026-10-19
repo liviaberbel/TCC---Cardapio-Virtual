@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordelicias da Lari | Acompanhar pedido</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <link rel="stylesheet" href="../assets/css/variaveis.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/componentes.css">
+  <link rel="stylesheet" href="../assets/css/cliente.css">
+</head>
+<body>
+
+  <header class="topo">
+    <div class="container topo__conteudo">
+      <a href="index.html" class="topo__logo">
+        <img src="../assets/img/logo/logo.png" alt="Gordelicias da Lari - confeitaria artesanal">
+      </a>
+
+      <nav class="topo__acoes">
+        <a href="index.html" class="botao botao--contorno">
+          <i class="bi bi-arrow-left"></i>
+          <span class="botao__texto">Voltar ao cardápio</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container secao-carrinho">
+    <h1>Acompanhar pedido</h1>
+
+    <section class="bloco-form">
+      <h2>Consultar pedido</h2>
+      <form id="form-acompanhar">
+        <div class="campos">
+          <div class="campo">
+            <label for="numero">Número do pedido</label>
+            <input type="number" id="numero" name="numero" min="1" required>
+          </div>
+          <div class="campo">
+            <label for="telefone">Telefone usado no pedido</label>
+            <input type="tel" id="telefone" name="telefone" placeholder="(11) 91234-5678" required>
+          </div>
+        </div>
+        <button type="submit" class="botao" style="margin-top: 16px;">Consultar</button>
+      </form>
+    </section>
+
+    <div id="erro-acompanhar" class="aviso-carrinho" role="alert" hidden></div>
+
+    <section id="resultado" class="bloco-form" hidden>
+      <div class="res-cabecalho">
+        <h2 id="res-titulo"></h2>
+        <span id="res-status"></span>
+      </div>
+      <p id="res-data" class="nota"></p>
+
+      <ol id="etapas" class="etapas"></ol>
+      <p id="aviso-cancelado" class="aviso-carrinho" hidden>
+        Este pedido foi cancelado. Se tiver dúvidas, fale com a loja pelo WhatsApp.
+      </p>
+
+      <ul id="res-itens" class="resumo__itens"></ul>
+      <div class="resumo__linha resumo__linha--total">
+        <span>Total</span>
+        <span id="res-total"></span>
+      </div>
+
+      <p class="nota">Esta página se atualiza sozinha a cada 30 segundos.</p>
+      <a id="btn-whatsapp" class="botao botao--secundario" target="_blank" rel="noopener">
+        <i class="bi bi-whatsapp"></i> Falar com a loja
+      </a>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="container">
+      <p>Gordelicias da Lari · Confeitaria artesanal</p>
+    </div>
+  </footer>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/cliente/acompanhar.js"></script>
+</body>
+</html>
