@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordelicias da Lari | Pedidos</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <link rel="stylesheet" href="../assets/css/variaveis.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/componentes.css">
+  <link rel="stylesheet" href="../assets/css/proprietaria.css">
+</head>
+<body class="layout-interno" data-pagina="pedidos">
+
+  <aside id="menu-lateral" class="menu-lateral"></aside>
+
+  <main class="conteudo-interno">
+    <div class="cabecalho-pagina">
+      <div>
+        <h1 class="titulo-pagina">Pedidos</h1>
+        <p class="subtitulo-pagina">Pedidos recebidos, do mais recente para o mais antigo.</p>
+      </div>
+      <button type="button" id="btn-atualizar" class="botao botao--contorno">
+        <i class="bi bi-arrow-clockwise"></i> Atualizar
+      </button>
+    </div>
+
+    <div id="erro-pedidos" class="mensagem-erro" role="alert" hidden></div>
+
+    <section class="bloco-interno">
+    <div class="filtros">
+
+        <div class="busca">
+            <i class="bi bi-search"></i>
+            <input type="search" id="busca-pedidos" placeholder="Buscar por número, cliente ou telefone..." aria-label="Buscar pedidos">
+        </div>
+
+        <select id="filtro-status" class="filtro-select" aria-label="Filtrar por status">
+                <option value="">Todos os status</option>
+                <option value="recebido">Recebido</option>
+                <option value="preparo">Em preparo</option>
+                <option value="entrega">Saiu para entrega</option>
+                <option value="entregue">Entregue</option>
+                <option value="cancelado">Cancelado</option>
+        </select>
+
+    </div>
+
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Data e hora</th>
+              <th>Cliente</th>
+              <th>Pagamento</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-pedidos"></tbody>
+        </table>
+      </div>
+      <p id="sem-pedidos" class="nota" hidden></p>
+    </section>
+  </main>
+
+  <dialog id="detalhes-pedido" class="dialogo">
+    <div class="dialogo__cabecalho">
+      <h2 id="detalhes-titulo"></h2>
+      <button type="button" id="fechar-detalhes" class="botao-icone" aria-label="Fechar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div id="detalhes-corpo" class="dialogo__corpo"></div>
+  </dialog>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/proprietaria/auth.js"></script>
+  <script src="../assets/js/proprietaria/menu.js"></script>
+  <script src="../assets/js/proprietaria/pedidos.js"></script>
+</body>
+</html>
