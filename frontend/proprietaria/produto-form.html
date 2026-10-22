@@ -41,10 +41,11 @@
           </div>
 
           <div class="campo">
-            <label for="categoria">Categoria</label>
-            <input type="text" id="categoria" name="categoria" list="lista-categorias" maxlength="60"
-                   placeholder="Escolha ou digite uma nova" required>
-            <datalist id="lista-categorias"></datalist>
+              <label for="categoria">Categoria</label>
+              <select id="categoria" name="categoria" required>
+                <option value="">Escolha uma categoria</option>
+              </select>
+            <a href="categorias.html" class="link-discreto">Gerenciar categorias</a>
           </div>
 
           <div class="campo">
@@ -57,6 +58,17 @@
             <input type="number" id="quantidade" name="quantidade" min="0" step="1" placeholder="0" required>
           </div>
 
+          <div class="campo">
+            <label for="pesoGramas">Peso aproximado (g)</label>
+            <input type="number" id="pesoGramas" name="pesoGramas" min="1" max="5000" step="1" placeholder="Ex.: 120">
+          </div>
+
+          <div class="campo">
+            <label for="validade">Válido até</label>
+            <input type="date" id="validade" name="validade">
+            <small class="dica-campo">Último dia em que pode ser vendido. Atualize a data a cada nova leva.</small>
+          </div>
+
           <div class="campo campo--larga">
             <label for="descricao">Descrição (opcional)</label>
             <textarea id="descricao" name="descricao" rows="3" maxlength="200"></textarea>
@@ -65,17 +77,44 @@
       </section>
 
       <section class="bloco-interno">
-        <h2>Foto do produto</h2>
+    <h2>Foto do produto</h2>
 
-        <div id="foto-preview" class="foto-preview"></div>
+    <div id="foto-preview" class="foto-preview"></div>
 
-        <input type="file" id="foto" name="foto" accept="image/jpeg,image/png,image/webp" class="input-arquivo">
-        <label for="foto" class="botao botao--secundario botao-arquivo">
-          <i class="bi bi-upload"></i> Escolher foto
-        </label>
+    <div id="editor-foto" class="editor-foto" hidden>
+      <p class="nota">
+        Arraste a foto para posicioná-la e use o controle para aproximar ou afastar.
+        A área mostrada é a que vai aparecer no cardápio.
+      </p>
 
-        <p class="nota">JPG, PNG ou WebP, até 5 MB. Prefira fotos na proporção 4:3 (como 800 × 600 px).</p>
-      </section>
+      <div id="quadro-foto" class="editor-foto__quadro" tabindex="0"
+          aria-label="Área de enquadramento: arraste a foto ou use as setas do teclado">
+        <img id="imagem-editor" alt="Foto em edição" draggable="false">
+      </div>
+
+      <label class="editor-foto__zoom">
+        <i class="bi bi-zoom-out"></i>
+        <input type="range" id="zoom-foto" min="1" max="3" step="0.01" value="1" aria-label="Zoom da foto">
+        <i class="bi bi-zoom-in"></i>
+      </label>
+
+      <div class="editor-foto__acoes">
+        <button type="button" id="btn-centralizar" class="botao botao--contorno botao--pequeno">Centralizar</button>
+        <button type="button" id="btn-cancelar-foto" class="botao botao--contorno botao--pequeno">Cancelar</button>
+      </div>
+    </div>
+
+    <input type="file" id="foto" name="foto" accept="image/jpeg,image/png,image/webp" class="input-arquivo">
+    <label for="foto" class="botao botao--secundario botao-arquivo">
+      <i class="bi bi-upload"></i> Escolher foto
+    </label>
+
+    <button type="button" id="btn-ajustar-atual" class="botao botao--contorno botao-arquivo" hidden>
+      <i class="bi bi-arrows-move"></i> Ajustar a foto atual
+    </button>
+
+    <p class="nota">JPG, PNG ou WebP, até 5 MB. A foto é recortada na proporção 4:3, a mesma do cardápio.</p>
+</section>
 
       <div class="acoes-form">
         <button type="submit" id="btn-salvar" class="botao">Salvar produto</button>
@@ -90,6 +129,8 @@
   <script src="../assets/js/api.js"></script>
   <script src="../assets/js/proprietaria/auth.js"></script>
   <script src="../assets/js/proprietaria/menu.js"></script>
+  <script src="../assets/js/proprietaria/editor-foto.js"></script>
+  <script src="../assets/js/proprietaria/produto-form.js"></script>
   <script src="../assets/js/proprietaria/produto-form.js"></script>
 </body>
 </html>

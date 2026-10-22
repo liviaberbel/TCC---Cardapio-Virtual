@@ -35,6 +35,7 @@ function criarLinha(produto) {
     <td>
       <strong class="produto-nome"></strong>
       <span class="produto-categoria"></span>
+      <span class="produto-validade"></span>
     </td>
     <td class="produto-preco"></td>
     <td>
@@ -49,9 +50,19 @@ function criarLinha(produto) {
     </td>`;
 
   linha.querySelector(".produto-nome").textContent = produto.nome;
-  linha.querySelector(".produto-categoria").textContent = produto.categoria;
+  linha.querySelector(".produto-categoria").textContent =
+    produto.categoria + (produto.pesoGramas ? ` · ${produto.pesoGramas} g` : "");
   linha.querySelector(".produto-preco").textContent = formatarPreco(produto.preco);
   linha.querySelector('[data-acao="editar"]').href = `produto-form.html?id=${produto.id}`;
+
+  const situacaoValidade = situacaoDaValidade(produto.validade);
+  const campoValidade = linha.querySelector(".produto-validade");
+  if (situacaoValidade) {
+    campoValidade.textContent = situacaoValidade.texto;
+    campoValidade.classList.add(`produto-validade--${situacaoValidade.estado}`);
+  } else {
+    campoValidade.remove();
+  }
 
   const campo = linha.querySelector(".campo-quantidade");
   const selo = linha.querySelector(".selo");

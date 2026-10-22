@@ -156,3 +156,62 @@ function situacaoDaLoja(funcionamento) {
 
   return { aberta: true, estado: "aberta", mensagem: `Aberto agora · pedidos até as ${funcionamento.fechamento}` };
 }
+
+function formatarDataCurta(dataIso) {
+  const [ano, mes, dia] = dataIso.slice(0, 10).split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+// validade: "AAAA-MM-DD" ou vazio. Devolve { estado, texto } ou null (sem validade)
+function situacaoDaValidade(validade) {
+  if (!validade) return null;
+
+  const data = validade.slice(0, 10);
+  const hoje = hojeISO();
+
+  if (data < hoje) return { estado: "vencido", texto: `Vencido em ${formatarDataCurta(data)}` };
+  if (data === hoje) return { estado: "hoje", texto: "Vence hoje" };
+  return { estado: "ok", texto: `Válido até ${formatarDataCurta(data)}` };
+}
+
+/* ---------- Frase inicial do cardápio ---------- */
+function saudacao() {
+  const hora = new Date().getHours();
+  if (hora < 12) return "Bom dia";
+  if (hora < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+// Frases prontas. Para incluir uma nova, copie uma linha e mude os textos.
+function frasesAleatorias() {
+  const s = saudacao();
+
+  return [
+    { titulo: `${s}, docinho!`, subtitulo: "Escolha seus doces favoritos e faça seu pedido pelo site." },
+    { titulo: "O que vai adoçar o seu dia?", subtitulo: "Dê uma olhada no cardápio e escolha com calma." },
+    { titulo: "Bateu aquela vontade de doce?", subtitulo: "Aqui tem de tudo um pouco, feito de forma artesanal." },
+    { titulo: `${s}! Que tal um docinho?`, subtitulo: "O cardápio de hoje está logo aqui embaixo." },
+    { titulo: "Seu momento doce começa aqui.", subtitulo: "Escolha, peça e receba em casa." },
+    { titulo: "Hoje tem doce, sim!", subtitulo: "Confira as delícias artesanais do cardápio." },
+    { titulo: "Doce é sempre uma boa ideia.", subtitulo: "Escolha o seu favorito e faça o pedido em poucos cliques." },
+    { titulo: `${s}! Vamos adoçar o seu dia?`, subtitulo: "Monte o seu pedido com calma, a gente cuida do resto." },
+    { titulo: "Sobremesa chegando!", subtitulo: "Escolha o que mais combina com você hoje." },
+    { titulo: "Fome de doce? Chegou ao lugar certo!", subtitulo: "Os queridinhos estão logo aqui embaixo." }
+  ];
+}
+
+// config: { modo, titulo, subtitulo, ate } ou null. Devolve a frase que deve aparecer agora.
+function escolherFrase(config) {
+  const personalizada =
+    config &&
+    config.modo === "personalizada" &&
+    config.titulo &&
+    (!config.ate || config.ate.slice(0, 10) >= hojeISO());
+
+  if (personalizada) {
+    return { titulo: config.titulo, subtitulo: config.subtitulo || "" };
+  }
+
+  const opcoes = frasesAleatorias();
+  return opcoes[Math.floor(Math.random() * opcoes.length)];
+}

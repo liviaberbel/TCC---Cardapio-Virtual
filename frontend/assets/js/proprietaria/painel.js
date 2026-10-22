@@ -139,3 +139,39 @@ carregarFuncionamento();
 setInterval(() => {
   buscarFuncionamento().then(mostrarSituacaoLoja).catch(() => {});
 }, 60000);
+
+/* ---------- Aviso de validade ---------- */
+async function carregarAvisosDeValidade() {
+  try {
+    const produtos = await listarProdutos();
+    const lista = document.getElementById("lista-validade");
+    lista.innerHTML = "";
+
+    // Só interessam os produtos que ainda têm estoque
+    const alertas = produtos
+      .filter((produto) => produto.quantidade > 0)
+      .map((produto) => ({ produto, situacao: situacaoDaValidade(produto.validade) }))
+      .filter(({ situacao }) => situacao && ["vencido", "hoje"].includes(situacao.estado))
+      .sort((a, b) => (a.situacao.estado === "vencido" ? -1 : 1) - (b.situacao.estado === "vencido" ? -1 : 1));
+
+    alertas.forEach(({ produto, situacao }) => {
+      const item = document.createElement("li");
+
+      const link = document.createElement("a");
+      link.href = `produto-form.html?id=${produto.id}`;
+      link.textContent = produto.nome;
+
+      const texto = document.createElement("span");
+      texto.textContent = situacao.texto;
+
+      item.append(link, texto);
+      lista.appendChild(item);
+    });
+
+    document.getElementById("aviso-validade").hidden = alertas.length === 0;
+  } catch (erro) {
+    // sem a lista de produtos, o aviso simplesmente não aparece
+  }
+}
+
+carregarAvisosDeValidade();

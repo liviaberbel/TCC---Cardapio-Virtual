@@ -572,3 +572,16 @@ html {
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* Esconde a frase até o sorteio terminar, para ela não "piscar" trocando de texto.
+   Se algo falhar, ela aparece sozinha depois de 1,5 segundo. */
+.boas-vindas--oculto {
+  visibility: hidden;
+  animation: revelar-frase 0s 1.5s forwards;
+}
+
+@keyframes revelar-frase {
+  to {
+    visibility: visible;
+  }
+}

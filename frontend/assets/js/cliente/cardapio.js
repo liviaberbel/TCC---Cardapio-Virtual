@@ -66,6 +66,7 @@ function criarCard(produto) {
     <div class="card-produto__corpo">
       <h3 class="card-produto__nome"></h3>
       <p class="card-produto__descricao"></p>
+      <p class="card-produto__peso"></p>
       <div class="card-produto__rodape">
         <span class="card-produto__preco"></span>
         <span class="selo"></span>
@@ -76,6 +77,13 @@ function criarCard(produto) {
   card.querySelector(".card-produto__nome").textContent = produto.nome;
   card.querySelector(".card-produto__descricao").textContent = produto.descricao;
   card.querySelector(".card-produto__preco").textContent = formatarPreco(produto.preco);
+
+  const peso = card.querySelector(".card-produto__peso");
+  if (produto.pesoGramas) {
+    peso.textContent = `≈ ${produto.pesoGramas} g`;
+  } else {
+    peso.remove();
+  }
 
   const selo = card.querySelector(".selo");
   if (esgotado) {
@@ -103,6 +111,23 @@ function criarCard(produto) {
   }
 
   return card;
+}
+
+/* ---------- Frase inicial ---------- */
+async function mostrarFraseInicial() {
+  const titulo = document.getElementById("titulo-boas-vindas");
+  const subtitulo = document.getElementById("subtitulo-boas-vindas");
+
+  try {
+    const frase = escolherFrase(await buscarFrase());
+    titulo.textContent = frase.titulo;
+    subtitulo.textContent = frase.subtitulo;
+    subtitulo.hidden = !frase.subtitulo;
+  } catch (erro) {
+    // se algo falhar, continua o texto que já está na página
+  }
+
+  document.getElementById("boas-vindas")?.classList.remove("boas-vindas--oculto");
 }
 
 /* ---------- Categorias ---------- */
@@ -233,4 +258,5 @@ async function iniciar() {
 configurarWhatsapp();
 atualizarContador();
 document.getElementById("busca")?.addEventListener("input", aplicarBusca);
+mostrarFraseInicial();
 iniciar();

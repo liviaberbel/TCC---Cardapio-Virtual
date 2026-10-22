@@ -240,8 +240,14 @@ async function buscarProduto(id) {
 // id: preenchido só quando for edição
 async function salvarProduto(dados, foto, id = null) {
   if (!CONFIG.usarBackend) {
-    const lista = lerProdutosSimulados();
-    const imagem = foto ? await reduzirImagem(foto) : undefined;
+
+        // O formulário envia o id da categoria; na simulação, o produto guarda o nome dela
+          const categoria = lerCategoriasSimuladas().find((c) => c.id === dados.categoriaId);
+          if (!categoria) throw new Error("Escolha uma categoria.");
+          const { categoriaId, ...resto } = dados;
+          dados = { ...resto, categoria: categoria.nome };
+          const lista = lerProdutosSimulados();
+          const imagem = foto ? await reduzirImagem(foto) : undefined;
 
     if (id) {
       const produto = lista.find((p) => p.id === id);
@@ -262,9 +268,11 @@ async function salvarProduto(dados, foto, id = null) {
     return novo;
   }
 
+
+
   // Com arquivo, o envio é feito como formulário (FormData), e não como JSON
   const formulario = new FormData();
-  Object.entries(dados).forEach(([chave, valor]) => formulario.append(chave, valor));
+  Object.entries(dados).forEach(([chave, valor]) => formulario.append(chave, valor ?? ""));
   if (foto) formulario.append("foto", foto);
   if (id) formulario.append("_method", "PUT"); // o Laravel só lê arquivos em PUT por esse caminho
 
@@ -405,6 +413,199 @@ async function salvarFuncionamento(dados) {
   });
   if (!resposta.ok) {
     throw new Error("Não foi possível salvar o funcionamento.");
+  }
+  return resposta.json();
+}
+
+/* ---------- Categorias ---------- */
+const CHAVE_CATEGORIAS = "categoriasSimuladas";
+
+function proximoId(lista) {
+  return lista.length ? Math.max(...lista.map((item) => item.id)) + 1 : 1;
+}
+
+function salvarCategoriasSimuladas(lista) {
+  localStorage.setItem(CHAVE_CATEGORIAS, JSON.stringify(lista));
+}
+
+// Na simulação, a lista é completada com as categorias dos produtos que já existem
+function lerCategoriasSimuladas() {
+  let categorias = [];
+
+  try {
+    const salvas = JSON.parse(localStorage.getItem(CHAVE_CATEGORIAS));
+    if (Array.isArray(salvas)) categorias = salvas;
+  } catch {
+    // começa com a lista vazia
+  }
+
+  let mudou = false;
+  lerProdutosSimulados().forEach((produto) => {
+    const existe = categorias.some(
+      (c) => normalizarTexto(c.nome) === normalizarTexto(produto.categoria)
+    );
+    if (!existe) {
+      categorias.push({ id: proximoId(categorias), nome: produto.categoria });
+      mudou = true;
+    }
+  });
+
+  if (mudou) salvarCategoriasSimuladas(categorias);
+  return categorias;
+}
+
+function contarProdutosDaCategoria(nome) {
+  return lerProdutosSimulados().filter(
+    (produto) => normalizarTexto(produto.categoria) === normalizarTexto(nome)
+  ).length;
+}
+
+async function mensagemDeErro(resposta, padrao) {
+  const corpo = await resposta.json().catch(() => ({}));
+  return corpo.message || padrao;
+}
+
+async function listarCategorias() {
+  if (!CONFIG.usarBackend) {
+    return lerCategoriasSimuladas().map((categoria) => ({
+      ...categoria,
+      totalProdutos: contarProdutosDaCategoria(categoria.nome)
+    }));
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/categorias`, { headers: cabecalhosProprietaria() });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível carregar as categorias."));
+  }
+  return resposta.json();
+}
+
+async function criarCategoria(nome) {
+  if (!CONFIG.usarBackend) {
+    const categorias = lerCategoriasSimuladas();
+    const nomeLimpo = nome.trim();
+
+    if (!nomeLimpo || nomeLimpo.length > 40) {
+      throw new Error("O nome deve ter de 1 a 40 caracteres.");
+    }
+    if (categorias.some((c) => normalizarTexto(c.nome) === normalizarTexto(nomeLimpo))) {
+      throw new Error("Já existe uma categoria com esse nome.");
+    }
+
+    const nova = { id: proximoId(categorias), nome: nomeLimpo };
+    categorias.push(nova);
+    salvarCategoriasSimuladas(categorias);
+    return { ...nova, totalProdutos: 0 };
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/categorias`, {
+    method: "POST",
+    headers: cabecalhosProprietaria(),
+    body: JSON.stringify({ nome })
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível criar a categoria."));
+  }
+  return resposta.json();
+}
+
+async function renomearCategoria(id, nome) {
+  if (!CONFIG.usarBackend) {
+    const categorias = lerCategoriasSimuladas();
+    const categoria = categorias.find((c) => c.id === id);
+    if (!categoria) throw new Error("Categoria não encontrada.");
+
+    const nomeLimpo = nome.trim();
+    if (!nomeLimpo || nomeLimpo.length > 40) {
+      throw new Error("O nome deve ter de 1 a 40 caracteres.");
+    }
+    if (categorias.some((c) => c.id !== id && normalizarTexto(c.nome) === normalizarTexto(nomeLimpo))) {
+      throw new Error("Já existe uma categoria com esse nome.");
+    }
+
+    // Na simulação o produto guarda o nome da categoria, então os produtos também são atualizados
+    const nomeAntigo = categoria.nome;
+    const produtos = lerProdutosSimulados();
+    produtos.forEach((produto) => {
+      if (normalizarTexto(produto.categoria) === normalizarTexto(nomeAntigo)) {
+        produto.categoria = nomeLimpo;
+      }
+    });
+
+    categoria.nome = nomeLimpo;
+    salvarCategoriasSimuladas(categorias);
+    salvarProdutosSimulados(produtos);
+    return { ...categoria, totalProdutos: contarProdutosDaCategoria(nomeLimpo) };
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/categorias/${id}`, {
+    method: "PUT",
+    headers: cabecalhosProprietaria(),
+    body: JSON.stringify({ nome })
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível renomear a categoria."));
+  }
+  return resposta.json();
+}
+
+async function excluirCategoria(id) {
+  if (!CONFIG.usarBackend) {
+    const categorias = lerCategoriasSimuladas();
+    const categoria = categorias.find((c) => c.id === id);
+    if (!categoria) throw new Error("Categoria não encontrada.");
+
+    const total = contarProdutosDaCategoria(categoria.nome);
+    if (total > 0) {
+      throw new Error(`Esta categoria tem ${total} produto(s). Mude esses produtos de categoria antes de excluir.`);
+    }
+
+    salvarCategoriasSimuladas(categorias.filter((c) => c.id !== id));
+    return;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/categorias/${id}`, {
+    method: "DELETE",
+    headers: cabecalhosProprietaria()
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível excluir a categoria."));
+  }
+}
+
+/* ---------- Frase inicial do cardápio ---------- */
+const CHAVE_FRASE = "fraseSimulada";
+
+async function buscarFrase() {
+  if (!CONFIG.usarBackend) {
+    try {
+      return JSON.parse(localStorage.getItem(CHAVE_FRASE));
+    } catch {
+      return null;
+    }
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/frase-inicial`);
+  if (!resposta.ok) {
+    throw new Error("Não foi possível carregar a frase inicial.");
+  }
+  return resposta.json();
+}
+
+// dados: { modo, titulo, subtitulo, ate }
+async function salvarFrase(dados) {
+  if (!CONFIG.usarBackend) {
+    localStorage.setItem(CHAVE_FRASE, JSON.stringify(dados));
+    return dados;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/frase-inicial`, {
+    method: "PUT",
+    headers: cabecalhosProprietaria(),
+    body: JSON.stringify(dados)
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível salvar a frase inicial."));
   }
   return resposta.json();
 }

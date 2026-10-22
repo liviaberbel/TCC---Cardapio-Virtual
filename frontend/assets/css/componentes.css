@@ -228,3 +228,8 @@
   background: var(--branco);
   color: var(--marrom);
 }
+
+.card-produto__peso {
+  font-size: 0.85rem;
+  font-weight: 700;
+}

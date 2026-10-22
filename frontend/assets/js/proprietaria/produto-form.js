@@ -7,10 +7,13 @@ const campoFoto = document.getElementById("foto");
 const areaPreview = document.getElementById("foto-preview");
 const botaoSalvar = document.getElementById("btn-salvar");
 const caixaErro = document.getElementById("erro-form");
+const botaoAjustarAtual = document.getElementById("btn-ajustar-atual");
+const botaoCancelarFoto = document.getElementById("btn-cancelar-foto");
 
 const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"];
 const TAMANHO_MAXIMO = 5 * 1024 * 1024; // 5 MB
-let fotoEscolhida = null;
+let validadeOriginal = ""; // validade que o produto já tinha (na edição)
+let fotoAtual = null; // endereço da foto que o produto já tem (na edição)
 
 function mostrarErro(texto) {
   caixaErro.textContent = texto;
@@ -27,43 +30,30 @@ function mostrarPreview(origem) {
 
   const img = document.createElement("img");
   img.src = origem;
-  img.alt = "Pré-visualização da foto do produto";
+  img.alt = "Foto do produto";
   areaPreview.appendChild(img);
 }
 
-async function carregarCategorias() {
-  try {
-    const produtos = await listarProdutos();
-    const categorias = [...new Set(produtos.map((produto) => produto.categoria))];
-    const lista = document.getElementById("lista-categorias");
-
-    categorias.forEach((categoria) => {
-      const opcao = document.createElement("option");
-      opcao.value = categoria;
-      lista.appendChild(opcao);
-    });
-  } catch (erro) {
-    // Sem as sugestões, a proprietária ainda pode digitar a categoria
-  }
+/* ---------- Foto ---------- */
+// Volta a mostrar a foto que o produto já tinha (ou o espaço vazio) e fecha o editor
+function restaurarPreview() {
+  fecharEditorFoto();
+  areaPreview.hidden = false;
+  mostrarPreview(fotoAtual);
+  botaoAjustarAtual.hidden = !fotoAtual;
+  campoFoto.value = "";
 }
 
-async function prepararEdicao() {
-  document.getElementById("titulo-pagina").textContent = "Editar produto";
-  document.title = "Gordelicias da Lari | Editar produto";
+async function abrirEditor(origem, mensagemDeErro) {
+  caixaErro.hidden = true;
 
   try {
-    const produto = await buscarProduto(idEdicao);
-
-    campos.nome.value = produto.nome;
-    campos.categoria.value = produto.categoria;
-    campos.descricao.value = produto.descricao || "";
-    campos.preco.value = produto.preco;
-    campos.quantidade.value = produto.quantidade;
-
-    if (produto.imagem) mostrarPreview(produto.imagem);
+    await abrirEditorFoto(origem);
+    areaPreview.hidden = true;
+    botaoAjustarAtual.hidden = true;
   } catch (erro) {
-    mostrarErro(erro.message);
-    formulario.hidden = true;
+    mostrarErro(mensagemDeErro);
+    campoFoto.value = "";
   }
 }
 
@@ -84,24 +74,107 @@ campoFoto.addEventListener("change", () => {
     return;
   }
 
-  fotoEscolhida = arquivo;
-  mostrarPreview(URL.createObjectURL(arquivo));
+  abrirEditor(URL.createObjectURL(arquivo), "Não foi possível abrir essa imagem. Tente outra foto.");
 });
 
+botaoAjustarAtual.addEventListener("click", () => {
+  abrirEditor(fotoAtual, "Não foi possível ajustar a foto atual. Escolha a foto novamente para ajustá-la.");
+});
+
+botaoCancelarFoto.addEventListener("click", restaurarPreview);
+
+/* ---------- Categorias ---------- */
+async function carregarCategorias() {
+  try {
+    const categorias = await listarCategorias();
+
+    categorias.forEach((categoria) => {
+      const opcao = document.createElement("option");
+      opcao.value = categoria.id;
+      opcao.textContent = categoria.nome;
+      campos.categoria.appendChild(opcao);
+    });
+
+    if (categorias.length === 0) {
+      mostrarErro("Ainda não há categorias. Crie uma na tela de Categorias antes de cadastrar produtos.");
+    }
+  } catch (erro) {
+    mostrarErro(erro.message);
+  }
+}
+
+// Usa o id da categoria quando existir; senão, procura pelo nome
+function selecionarCategoria(produto) {
+  if (produto.categoriaId) {
+    campos.categoria.value = produto.categoriaId;
+    return;
+  }
+
+  const opcao = [...campos.categoria.options].find(
+    (o) => normalizarTexto(o.textContent) === normalizarTexto(produto.categoria || "")
+  );
+  if (opcao) campos.categoria.value = opcao.value;
+}
+
+/* ---------- Edição ---------- */
+async function prepararEdicao() {
+  document.getElementById("titulo-pagina").textContent = "Editar produto";
+  document.title = "Gordelicias da Lari | Editar produto";
+
+  try {
+    const produto = await buscarProduto(idEdicao);
+
+    campos.nome.value = produto.nome;
+    selecionarCategoria(produto);
+    campos.descricao.value = produto.descricao || "";
+    campos.preco.value = produto.preco;
+    campos.quantidade.value = produto.quantidade;
+    campos.pesoGramas.value = produto.pesoGramas ?? "";
+
+    validadeOriginal = (produto.validade || "").slice(0, 10);
+    campos.validade.value = validadeOriginal;
+
+    if (produto.imagem) {
+      fotoAtual = produto.imagem;
+      mostrarPreview(fotoAtual);
+      botaoAjustarAtual.hidden = false;
+    }
+  } catch (erro) {
+    mostrarErro(erro.message);
+    formulario.hidden = true;
+  }
+}
+
+/* ---------- Salvar ---------- */
 formulario.addEventListener("submit", async (evento) => {
   evento.preventDefault();
   caixaErro.hidden = true;
 
+  const textoPeso = campos.pesoGramas.value.trim();
+
   const dados = {
     nome: campos.nome.value.trim(),
-    categoria: campos.categoria.value.trim(),
+    categoriaId: Number.parseInt(campos.categoria.value, 10),
     descricao: campos.descricao.value.trim(),
     preco: Number.parseFloat(campos.preco.value),
-    quantidade: Number.parseInt(campos.quantidade.value, 10)
+    quantidade: Number.parseInt(campos.quantidade.value, 10),
+    pesoGramas: textoPeso ? Number.parseInt(textoPeso, 10) : null,
+    validade: campos.validade.value || null
   };
 
-  if (!dados.nome || !dados.categoria) {
-    mostrarErro("Preencha o nome e a categoria do produto.");
+  if (!dados.nome || Number.isNaN(dados.categoriaId)) {
+    mostrarErro("Preencha o nome e escolha a categoria do produto.");
+    return;
+  }
+
+  if (dados.pesoGramas !== null && (Number.isNaN(dados.pesoGramas) || dados.pesoGramas < 1 || dados.pesoGramas > 5000)) {
+    mostrarErro("O peso deve ser um número de 1 a 5000 gramas.");
+    return;
+  }
+
+  // Data no passado só é aceita se for a mesma que o produto já tinha
+  if (dados.validade && dados.validade < hojeISO() && dados.validade !== validadeOriginal) {
+    mostrarErro("A validade não pode ser uma data que já passou.");
     return;
   }
 
@@ -109,7 +182,10 @@ formulario.addEventListener("submit", async (evento) => {
   botaoSalvar.textContent = "Salvando...";
 
   try {
-    await salvarProduto(dados, fotoEscolhida, idEdicao);
+    // Se o editor está aberto, a foto enviada é a recortada; senão, a foto atual é mantida
+    const foto = editorFotoAtivo() ? await exportarFotoEditada() : null;
+
+    await salvarProduto(dados, foto, idEdicao);
     window.location.href = "produtos.html";
   } catch (erro) {
     mostrarErro(erro instanceof TypeError
@@ -122,8 +198,8 @@ formulario.addEventListener("submit", async (evento) => {
 
 /* ---------- Início ---------- */
 mostrarPreview(null);
-carregarCategorias();
 
-if (idEdicao !== null) {
-  prepararEdicao();
-}
+// As categorias precisam carregar antes de preencher o formulário de edição
+carregarCategorias().then(() => {
+  if (idEdicao !== null) prepararEdicao();
+});

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordelicias da Lari | Categorias</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <link rel="stylesheet" href="../assets/css/variaveis.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/componentes.css">
+  <link rel="stylesheet" href="../assets/css/proprietaria.css">
+</head>
+<body class="layout-interno" data-pagina="categorias">
+
+  <aside id="menu-lateral" class="menu-lateral"></aside>
+
+  <main class="conteudo-interno">
+    <h1 class="titulo-pagina">Categorias</h1>
+    <p class="subtitulo-pagina">
+      Organize o cardápio em seções, como "Brownies" ou "Fondue". Cada produto pertence a uma categoria.
+    </p>
+
+    <div id="aviso-categorias" class="aviso" role="status" hidden></div>
+    <div id="erro-categorias" class="mensagem-erro" role="alert" hidden></div>
+
+    <section class="bloco-interno">
+      <h2>Nova categoria</h2>
+      <form id="form-categoria" class="form-linha">
+        <div class="campo">
+          <label for="nome-categoria">Nome da categoria</label>
+          <input type="text" id="nome-categoria" maxlength="40" required>
+        </div>
+        <button type="submit" class="botao"><i class="bi bi-plus-lg"></i> Adicionar</button>
+      </form>
+    </section>
+
+    <section class="bloco-interno">
+      <h2>Suas categorias</h2>
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Produtos</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-categorias"></tbody>
+        </table>
+      </div>
+      <p id="sem-categorias" class="nota" hidden>Nenhuma categoria cadastrada ainda.</p>
+    </section>
+  </main>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/proprietaria/auth.js"></script>
+  <script src="../assets/js/proprietaria/menu.js"></script>
+  <script src="../assets/js/proprietaria/categorias.js"></script>
+</body>
+</html>
