@@ -58,7 +58,16 @@
 
         <section class="bloco-form">
           <h2>Endereço de entrega</h2>
+          <p class="nota">Entregamos somente em Joanópolis.</p>
+            <p id="aviso-bairros" class="aviso-carrinho" role="alert" hidden></p>
           <div class="campos">
+            <div class="campo">
+              <label for="cep">CEP (opcional)</label>
+              <input type="text" id="cep" name="cep" inputmode="numeric" autocomplete="postal-code"
+                    placeholder="00000-000" maxlength="9" pattern="\d{5}-?\d{3}"
+                    title="Digite os 8 números do CEP">
+              <small id="dica-cep" class="dica-campo">Digite o CEP para completar a rua automaticamente.</small>
+            </div>
             <div class="campo campo--larga">
               <label for="rua">Rua</label>
               <input type="text" id="rua" name="rua" autocomplete="address-line1" required>
@@ -69,7 +78,9 @@
             </div>
             <div class="campo">
               <label for="bairro">Bairro</label>
-              <input type="text" id="bairro" name="bairro" required>
+              <select id="bairro" name="bairro" required>
+                <option value="">Escolha o seu bairro</option>
+              </select>
             </div>
             <div class="campo">
               <label for="complemento">Complemento (opcional)</label>
@@ -123,6 +134,14 @@
       <aside class="resumo">
         <h2>Resumo do pedido</h2>
         <ul id="resumo-itens" class="resumo__itens"></ul>
+        <div class="resumo__linha">
+          <span>Subtotal</span>
+          <span id="resumo-subtotal"></span>
+        </div>
+        <div class="resumo__linha">
+          <span>Taxa de entrega</span>
+          <span id="resumo-taxa">Escolha o bairro</span>
+        </div>
         <div class="resumo__linha resumo__linha--total">
           <span>Total</span>
           <span id="resumo-total"></span>

@@ -784,3 +784,19 @@
   gap: 8px;
   margin-top: 12px;
 }
+
+/* ---------- Bairros e taxa de entrega ---------- */
+.form-linha .campo--taxa {
+  flex: 0 0 160px;
+  min-width: 140px;
+}
+
+.campo-taxa-inline {
+  max-width: 120px;
+}
+
+.detalhe-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}

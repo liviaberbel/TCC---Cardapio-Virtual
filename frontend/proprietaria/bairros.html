@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordelicias da Lari | Entrega</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <link rel="stylesheet" href="../assets/css/variaveis.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/componentes.css">
+  <link rel="stylesheet" href="../assets/css/proprietaria.css">
+</head>
+<body class="layout-interno" data-pagina="bairros">
+
+  <aside id="menu-lateral" class="menu-lateral"></aside>
+
+  <main class="conteudo-interno">
+    <h1 class="titulo-pagina">Entrega</h1>
+    <p class="subtitulo-pagina">
+      Entregamos somente em Joanópolis. Cadastre os bairros atendidos e a taxa de cada um.
+      Com taxa R$ 0,00, a entrega é grátis. O cliente só consegue pedir para os bairros desta lista.
+    </p>
+
+    <div id="aviso-bairros" class="aviso" role="status" hidden></div>
+    <div id="erro-bairros" class="mensagem-erro" role="alert" hidden></div>
+
+    <section class="bloco-interno">
+      <h2>Novo bairro</h2>
+      <form id="form-bairro" class="form-linha">
+        <div class="campo">
+          <label for="nome-bairro">Nome do bairro</label>
+          <input type="text" id="nome-bairro" maxlength="60" required>
+        </div>
+        <div class="campo campo--taxa">
+          <label for="taxa-bairro">Taxa (R$)</label>
+          <input type="number" id="taxa-bairro" min="0" step="0.01" placeholder="0,00" required>
+        </div>
+        <button type="submit" class="botao"><i class="bi bi-plus-lg"></i> Adicionar</button>
+      </form>
+    </section>
+
+    <section class="bloco-interno">
+      <h2>Bairros atendidos</h2>
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>Bairro</th>
+              <th>Taxa de entrega</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-bairros"></tbody>
+        </table>
+      </div>
+      <p id="sem-bairros" class="nota" hidden>
+        Nenhum bairro cadastrado. Enquanto a lista estiver vazia, os clientes não conseguem finalizar pedidos.
+      </p>
+    </section>
+  </main>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/proprietaria/auth.js"></script>
+  <script src="../assets/js/proprietaria/menu.js"></script>
+  <script src="../assets/js/proprietaria/bairros.js"></script>
+</body>
+</html>

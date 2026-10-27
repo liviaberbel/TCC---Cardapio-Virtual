@@ -118,6 +118,7 @@ function abrirDetalhes(pedido) {
   const entrega = criarBloco("Entrega");
   entrega.appendChild(criarParagrafo(`${e.rua}, ${e.numero}${e.complemento ? ` - ${e.complemento}` : ""}`));
   entrega.appendChild(criarParagrafo(e.bairro));
+  entrega.appendChild(criarParagrafo(`Joanópolis${e.cep ? ` · CEP ${formatarCep(e.cep)}` : ""}`));
   if (e.referencia) entrega.appendChild(criarParagrafo(`Referência: ${e.referencia}`));
 
   // Pagamento
@@ -139,9 +140,18 @@ function abrirDetalhes(pedido) {
   });
   itens.appendChild(lista);
 
-  const total = criarLinhaDupla("Total", formatarPreco(pedido.total), "detalhe-total");
+    const blocos = [criarBlocoStatus(pedido), cliente, entrega, pagamento, itens];
 
-  corpo.append(criarBlocoStatus(pedido), cliente, entrega, pagamento, itens, total);
+  if (pedido.taxaEntrega !== undefined) {
+    blocos.push(criarLinhaDupla(
+      "Taxa de entrega",
+      pedido.taxaEntrega > 0 ? formatarPreco(pedido.taxaEntrega) : "Grátis",
+      "detalhe-linha"
+    ));
+  }
+
+  blocos.push(criarLinhaDupla("Total", formatarPreco(pedido.total), "detalhe-total"));
+  corpo.append(...blocos);
 
   // Observações (só aparecem se o cliente escreveu algo)
   if (pedido.observacoes) {
@@ -237,3 +247,45 @@ campoBusca.addEventListener("input", aplicarBusca);
 document.getElementById("btn-atualizar").addEventListener("click", carregarPedidos);
 
 carregarPedidos();
+
+/* ---------- Atualização automática e aviso de novo pedido ---------- */
+const avisoNovoPedido = document.getElementById("aviso-novo-pedido");
+const tituloOriginal = document.title;
+let temporizadorNovoPedido;
+
+function avisarNovoPedido(quantidade) {
+  avisoNovoPedido.textContent = quantidade === 1
+    ? "Chegou 1 novo pedido!"
+    : `Chegaram ${quantidade} novos pedidos!`;
+  avisoNovoPedido.hidden = false;
+
+  clearTimeout(temporizadorNovoPedido);
+  temporizadorNovoPedido = setTimeout(() => {
+    avisoNovoPedido.hidden = true;
+  }, 8000);
+
+  // Se a aba está em segundo plano, o título chama a atenção
+  if (document.hidden) {
+    document.title = `(${quantidade}) Novo pedido · ${tituloOriginal}`;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) document.title = tituloOriginal;
+});
+
+async function atualizarPedidos() {
+  const pedidos = await listarPedidos();
+  if (!dadosMudaram("pedidos", pedidos)) return;
+
+  const maiorNumeroAntes = Math.max(0, ...todosPedidos.map((pedido) => pedido.numero));
+  const novos = pedidos.filter((pedido) => pedido.numero > maiorNumeroAntes).length;
+
+  todosPedidos = pedidos;
+  aplicarBusca();
+
+  if (novos > 0) avisarNovoPedido(novos);
+}
+
+// Não atualiza enquanto a janela de detalhes de um pedido está aberta
+atualizarPeriodicamente(atualizarPedidos, 10, { pausarSe: () => dialogo.open });

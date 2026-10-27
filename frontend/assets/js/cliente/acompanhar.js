@@ -55,6 +55,10 @@ function mostrarResultado(pedido) {
     lista.appendChild(linha);
   });
 
+  document.getElementById("res-linha-taxa").hidden = pedido.taxaEntrega === undefined;
+  document.getElementById("res-taxa").textContent =
+  pedido.taxaEntrega > 0 ? formatarPreco(pedido.taxaEntrega) : "Grátis";
+
   document.getElementById("res-total").textContent = formatarPreco(pedido.total);
 
   const texto = encodeURIComponent(`Olá! Quero falar sobre o pedido nº ${pedido.numero}.`);

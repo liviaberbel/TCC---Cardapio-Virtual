@@ -2,18 +2,38 @@ const formulario = document.getElementById("form-pedido");
 const botaoConfirmar = document.getElementById("btn-confirmar");
 const campoTroco = document.getElementById("campo-troco");
 const campoTelefone = document.getElementById("telefone");
+const campoBairro = document.getElementById("bairro");
+const campoCep = document.getElementById("cep");
+const campoRua = document.getElementById("rua");
+const dicaCep = document.getElementById("dica-cep");
+const avisoBairros = document.getElementById("aviso-bairros");
 const carrinho = lerCarrinho();
 
-function formatarTelefone(valor) {
-  const n = valor.replace(/\D/g, "").slice(0, 11);
-  if (n.length <= 2) return n;
-  if (n.length <= 6) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
-  if (n.length <= 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
-  return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+const DICA_CEP_PADRAO = "Digite o CEP para completar a rua automaticamente.";
+let bairros = [];
+let cepForaDaCidade = false;
+let consultaCep = 0; // identifica a consulta mais recente, para ignorar respostas antigas
+
+function bairroEscolhido() {
+  return bairros.find((bairro) => String(bairro.id) === campoBairro.value) || null;
+}
+
+function textoDaTaxa(taxa) {
+  return taxa > 0 ? formatarPreco(taxa) : "Grátis";
+}
+
+function atualizarTotais() {
+  const subtotal = calcularTotal(carrinho);
+  const bairro = bairroEscolhido();
+
+  document.getElementById("resumo-subtotal").textContent = formatarPreco(subtotal);
+  document.getElementById("resumo-taxa").textContent = bairro ? textoDaTaxa(bairro.taxa) : "Escolha o bairro";
+  document.getElementById("resumo-total").textContent = formatarPreco(subtotal + (bairro ? bairro.taxa : 0));
 }
 
 function mostrarResumo() {
   const lista = document.getElementById("resumo-itens");
+  lista.innerHTML = "";
 
   carrinho.forEach((item) => {
     const linha = document.createElement("li");
@@ -25,11 +45,96 @@ function mostrarResumo() {
     lista.appendChild(linha);
   });
 
-  document.getElementById("resumo-total").textContent = formatarPreco(calcularTotal(carrinho));
+  atualizarTotais();
 }
 
+function bloquearPedido(mensagem) {
+  avisoBairros.textContent = mensagem;
+  avisoBairros.hidden = false;
+  botaoConfirmar.disabled = true;
+}
+
+async function carregarBairros() {
+  const lista = await listarBairros();
+  bairros = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+  bairros.forEach((bairro) => {
+    const opcao = document.createElement("option");
+    opcao.value = bairro.id;
+    opcao.textContent = `${bairro.nome} (${bairro.taxa > 0 ? formatarPreco(bairro.taxa) : "entrega grátis"})`;
+    campoBairro.appendChild(opcao);
+  });
+
+  if (bairros.length === 0) {
+    bloquearPedido("No momento não há bairros cadastrados para entrega. Fale com a loja pelo WhatsApp.");
+  }
+}
+
+/* ---------- CEP ---------- */
+// Se o bairro devolvido pelo CEP for igual a um bairro cadastrado, já deixa ele escolhido
+function selecionarBairroPeloNome(nome) {
+  if (!nome) return;
+
+  const bairro = bairros.find((b) => normalizarTexto(b.nome) === normalizarTexto(nome));
+  if (bairro) {
+    campoBairro.value = bairro.id;
+    atualizarTotais();
+  }
+}
+
+async function preencherPeloCep() {
+  const digitos = campoCep.value.replace(/\D/g, "");
+
+  if (digitos.length !== 8) {
+    dicaCep.textContent = DICA_CEP_PADRAO;
+    return;
+  }
+
+  const minhaConsulta = ++consultaCep;
+  dicaCep.textContent = "Buscando o endereço...";
+
+  try {
+    const endereco = await consultarCep(digitos);
+    if (minhaConsulta !== consultaCep) return; // o cliente já mudou o CEP
+
+    if (!endereco) {
+      dicaCep.textContent = "Não encontramos esse CEP. Preencha o endereço manualmente.";
+      return;
+    }
+
+    if (normalizarTexto(endereco.cidade) !== "joanopolis") {
+      cepForaDaCidade = true;
+      dicaCep.textContent =
+        `Esse CEP é de ${endereco.cidade}${endereco.uf ? `/${endereco.uf}` : ""}. Entregamos somente em Joanópolis.`;
+      return;
+    }
+
+    if (endereco.rua) campoRua.value = endereco.rua;
+    selecionarBairroPeloNome(endereco.bairro);
+
+    dicaCep.textContent = endereco.rua
+      ? "Endereço encontrado. Confira e informe o número."
+      : "CEP encontrado, mas sem o nome da rua. Informe a rua e o número.";
+  } catch (erro) {
+    if (minhaConsulta !== consultaCep) return;
+    dicaCep.textContent = "Não foi possível consultar o CEP agora. Preencha o endereço manualmente.";
+  }
+}
+
+/* ---------- Envio ---------- */
 async function enviar(evento) {
   evento.preventDefault();
+
+  if (cepForaDaCidade) {
+    alert("Entregamos somente em Joanópolis. Confira o CEP informado.");
+    return;
+  }
+
+  const bairro = bairroEscolhido();
+  if (!bairro) {
+    alert("Escolha o seu bairro.");
+    return;
+  }
 
   botaoConfirmar.disabled = true;
   botaoConfirmar.textContent = "Enviando...";
@@ -37,19 +142,21 @@ async function enviar(evento) {
   const dados = new FormData(formulario);
   const forma = dados.get("pagamento");
 
-  // O front envia só o id e a quantidade; os preços são calculados pelo back-end
+  // O front envia só o id e a quantidade dos itens e o id do bairro;
+  // os preços e a taxa são calculados pelo back-end
   const pedido = {
     cliente: {
       nome: dados.get("nome").trim(),
       telefone: dados.get("telefone")
     },
     endereco: {
+      cep: dados.get("cep").replace(/\D/g, ""),
       rua: dados.get("rua").trim(),
       numero: dados.get("numero").trim(),
-      bairro: dados.get("bairro").trim(),
       complemento: dados.get("complemento").trim(),
       referencia: dados.get("referencia").trim()
     },
+    bairroId: bairro.id,
     pagamento: {
       forma,
       troco: forma === "dinheiro" ? dados.get("troco").trim() : ""
@@ -64,7 +171,7 @@ async function enviar(evento) {
     sessionStorage.setItem("ultimoPedido", JSON.stringify({
       numero: resposta.numero,
       nome: pedido.cliente.nome,
-      total: calcularTotal(carrinho),
+      total: resposta.total ?? calcularTotal(carrinho) + bairro.taxa,
       pagamento: forma,
       telefone: pedido.cliente.telefone,
       previsao: resposta.previsaoEntrega
@@ -81,7 +188,6 @@ async function enviar(evento) {
   }
 }
 
-/* ---------- Início ---------- */
 async function iniciar() {
   if (carrinho.length === 0) {
     // Sem itens, não há o que finalizar
@@ -102,12 +208,25 @@ async function iniciar() {
 
   mostrarResumo();
 
+  try {
+    await carregarBairros();
+  } catch (erro) {
+    bloquearPedido("Não foi possível carregar os bairros de entrega. Tente novamente em instantes.");
+  }
+
   campoTelefone.addEventListener("input", () => {
     campoTelefone.value = formatarTelefone(campoTelefone.value);
   });
 
-  formulario.addEventListener("change", () => {
+  campoCep.addEventListener("input", () => {
+    campoCep.value = formatarCep(campoCep.value);
+    cepForaDaCidade = false;
+    preencherPeloCep();
+  });
+
+  formulario.addEventListener("change", (evento) => {
     campoTroco.hidden = formulario.pagamento.value !== "dinheiro";
+    if (evento.target === campoBairro) atualizarTotais();
   });
 
   formulario.addEventListener("submit", enviar);

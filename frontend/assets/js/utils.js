@@ -215,3 +215,45 @@ function escolherFrase(config) {
   const opcoes = frasesAleatorias();
   return opcoes[Math.floor(Math.random() * opcoes.length)];
 }
+
+/* ---------- Atualização automática ---------- */
+const ultimosDados = new Map();
+
+// Devolve true se os dados são diferentes da última vez que foram vistos com essa chave
+function dadosMudaram(chave, dados) {
+  const atual = JSON.stringify(dados);
+  if (ultimosDados.get(chave) === atual) return false;
+
+  ultimosDados.set(chave, atual);
+  return true;
+}
+
+// Executa `funcao` de tempos em tempos, só com a aba visível, e também quando a pessoa volta para a aba.
+// pausarSe: função que devolve true quando não é hora de atualizar (ex.: a pessoa está digitando)
+function atualizarPeriodicamente(funcao, segundos, { pausarSe = () => false } = {}) {
+  let executando = false;
+
+  async function executar() {
+    if (executando || document.hidden || pausarSe()) return;
+
+    executando = true;
+    try {
+      await funcao();
+    } catch (erro) {
+      // ignora: tenta de novo na próxima vez
+    } finally {
+      executando = false;
+    }
+  }
+
+  setInterval(executar, segundos * 1000);
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) executar();
+  });
+}
+
+function formatarCep(valor) {
+  const numeros = valor.replace(/\D/g, "").slice(0, 8);
+  return numeros.length > 5 ? `${numeros.slice(0, 5)}-${numeros.slice(5)}` : numeros;
+}

@@ -585,3 +585,11 @@ html {
     visibility: visible;
   }
 }
+
+.bloco-form > .nota {
+  margin: 0 0 var(--espaco-2);
+}
+
+.dica-campo {
+  font-size: 0.8rem;
+}

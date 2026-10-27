@@ -5,6 +5,7 @@ const itensMenu = [
   { id: "painel", texto: "Painel", icone: "bi-grid", link: "painel.html" },
   { id: "produtos", texto: "Produtos", icone: "bi-box-seam", link: "produtos.html" },
   { id: "categorias", texto: "Categorias", icone: "bi-tags", link: "categorias.html" },
+  { id: "bairros", texto: "Entrega", icone: "bi-truck", link: "bairros.html" },
   { id: "frase", texto: "Frase inicial", icone: "bi-chat-quote", link: "frase.html" },
   { id: "pedidos", texto: "Pedidos", icone: "bi-receipt", link: "pedidos.html" }
 ];

@@ -104,20 +104,25 @@ function mostrarAvisos(avisos) {
   caixa.hidden = avisos.length === 0;
 }
 
-function bloquearFinalizacao(mensagem) {
+// Bloqueia o botão de finalizar quando a loja está fechada e libera quando ela abre
+function atualizarFinalizacao(situacao) {
   const botao = document.getElementById("btn-finalizar");
   const aviso = document.getElementById("aviso-loja");
+  if (!botao || !aviso) return;
 
-  if (botao) {
-    botao.removeAttribute("href");
-    botao.setAttribute("aria-disabled", "true");
-    botao.classList.add("botao--desativado");
+  if (situacao.aberta) {
+    botao.setAttribute("href", "finalizar-pedido.html");
+    botao.removeAttribute("aria-disabled");
+    botao.classList.remove("botao--desativado");
+    aviso.hidden = true;
+    return;
   }
 
-  if (aviso) {
-    aviso.textContent = mensagem;
-    aviso.hidden = false;
-  }
+  botao.removeAttribute("href");
+  botao.setAttribute("aria-disabled", "true");
+  botao.classList.add("botao--desativado");
+  aviso.textContent = situacao.mensagem;
+  aviso.hidden = false;
 }
 
 document.getElementById("btn-limpar")?.addEventListener("click", () => {
@@ -127,9 +132,28 @@ document.getElementById("btn-limpar")?.addEventListener("click", () => {
   }
 });
 
+// Conferência periódica: estoque e horário de funcionamento
+async function atualizarCarrinho() {
+  const produtos = await listarProdutos();
+
+  if (dadosMudaram("produtos", produtos)) {
+    produtos.forEach((produto) => {
+      estoque[produto.id] = produto.quantidade;
+    });
+
+    const avisos = ajustarCarrinhoAoEstoque(produtos);
+    if (avisos.length > 0) mostrarAvisos(avisos);
+    mostrarCarrinho();
+  }
+
+  atualizarFinalizacao(situacaoDaLoja(await buscarFuncionamento()));
+}
+
 async function iniciar() {
   try {
     const produtos = await listarProdutos();
+    dadosMudaram("produtos", produtos); // ponto de partida para as próximas conferências
+
     produtos.forEach((produto) => {
       estoque[produto.id] = produto.quantidade;
     });
@@ -139,13 +163,14 @@ async function iniciar() {
   }
 
   try {
-    const situacao = situacaoDaLoja(await buscarFuncionamento());
-    if (!situacao.aberta) bloquearFinalizacao(situacao.mensagem);
+    atualizarFinalizacao(situacaoDaLoja(await buscarFuncionamento()));
   } catch (erro) {
     // Se não der para conferir, o pedido ainda é conferido na hora do envio
   }
 
   mostrarCarrinho();
+
+  atualizarPeriodicamente(atualizarCarrinho, 20);
 }
 
 iniciar();

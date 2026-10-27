@@ -146,3 +146,17 @@ async function carregarProdutos() {
 
 campoBusca.addEventListener("input", aplicarBusca);
 carregarProdutos();
+
+/* ---------- Atualização automática ---------- */
+async function atualizarProdutos() {
+  const produtos = await listarProdutos();
+  if (!dadosMudaram("produtos", produtos)) return;
+
+  todosProdutos = produtos;
+  aplicarBusca();
+}
+
+// Não atualiza enquanto a proprietária está com o cursor em um campo de quantidade
+atualizarPeriodicamente(atualizarProdutos, 15, {
+  pausarSe: () => document.activeElement?.classList.contains("campo-quantidade")
+});

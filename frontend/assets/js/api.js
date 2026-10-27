@@ -1,10 +1,15 @@
 async function enviarPedido(pedido) {
   // Simulação enquanto o back-end não está pronto
   if (!CONFIG.usarBackend) {
+    const funcionamento = await buscarFuncionamento();
+    if (!situacaoDaLoja(funcionamento).aberta) {
+      throw new Error("A loja não está recebendo pedidos neste momento.");
+    }
 
-        const funcionamento = await buscarFuncionamento();
-        if (!situacaoDaLoja(funcionamento).aberta) {
-        throw new Error("A loja não está recebendo pedidos neste momento.");
+    // A entrega só vale para os bairros cadastrados (Joanópolis)
+    const bairro = lerBairrosSimulados().find((b) => b.id === pedido.bairroId);
+    if (!bairro) {
+      throw new Error("Escolha um bairro da lista para a entrega.");
     }
 
     const lista = lerProdutosSimulados();
@@ -23,7 +28,11 @@ async function enviarPedido(pedido) {
       const produto = lista.find((p) => p.id === item.produtoId);
       return { produtoId: item.produtoId, nome: produto.nome, preco: produto.preco, quantidade: item.quantidade };
     });
-    const total = itens.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+
+    const arredondar = (valor) => Math.round(valor * 100) / 100;
+    const subtotal = arredondar(itens.reduce((soma, item) => soma + item.preco * item.quantidade, 0));
+    const taxaEntrega = bairro.taxa;
+    const total = arredondar(subtotal + taxaEntrega);
 
     const pedidos = lerPedidosSimulados();
     const numero = pedidos.length ? Math.max(...pedidos.map((p) => p.numero)) + 1 : 1001;
@@ -33,10 +42,12 @@ async function enviarPedido(pedido) {
       status: "recebido",
       data: new Date().toISOString(),
       cliente: pedido.cliente,
-      endereco: pedido.endereco,
+      endereco: { ...pedido.endereco, bairro: bairro.nome },
       pagamento: pedido.pagamento,
       observacoes: pedido.observacoes,
       itens,
+      subtotal,
+      taxaEntrega,
       total
     });
     salvarPedidosSimulados(pedidos);
@@ -47,9 +58,11 @@ async function enviarPedido(pedido) {
     });
     salvarProdutosSimulados(lista);
 
-      return {
+    return {
       numero,
-      previsaoEntrega: `${funcionamento.entregaMin} a ${funcionamento.entregaMax} minutos`
+      previsaoEntrega: `${funcionamento.entregaMin} a ${funcionamento.entregaMax} minutos`,
+      taxaEntrega,
+      total
     };
   }
 
@@ -59,7 +72,7 @@ async function enviarPedido(pedido) {
     body: JSON.stringify(pedido)
   });
 
-    if (!resposta.ok) {
+  if (!resposta.ok) {
     const erro = await resposta.json().catch(() => ({}));
     throw new Error(erro.message || "Não foi possível enviar o pedido.");
   }
@@ -359,6 +372,7 @@ async function consultarPedido(numero, telefone) {
       data: pedido.data,
       status: pedido.status,
       total: pedido.total,
+      taxaEntrega: pedido.taxaEntrega,
       itens: pedido.itens
     };
   }
@@ -608,4 +622,157 @@ async function salvarFrase(dados) {
     throw new Error(await mensagemDeErro(resposta, "Não foi possível salvar a frase inicial."));
   }
   return resposta.json();
+}
+
+/* ---------- Bairros e taxa de entrega ---------- */
+const CHAVE_BAIRROS = "bairrosSimulados";
+
+// Bairro de exemplo, só para a simulação. A proprietária pode editar ou excluir.
+const bairrosIniciais = [{ id: 1, nome: "Centro", taxa: 5.0 }];
+
+function lerBairrosSimulados() {
+  try {
+    const salvos = JSON.parse(localStorage.getItem(CHAVE_BAIRROS));
+    if (Array.isArray(salvos)) return salvos;
+  } catch {
+    // se der erro, usa a lista inicial
+  }
+  return structuredClone(bairrosIniciais);
+}
+
+function salvarBairrosSimulados(lista) {
+  localStorage.setItem(CHAVE_BAIRROS, JSON.stringify(lista));
+}
+
+// Confere nome e taxa e devolve o nome já sem espaços sobrando
+function validarBairro(nome, taxa) {
+  const nomeLimpo = String(nome).trim();
+
+  if (!nomeLimpo || nomeLimpo.length > 60) {
+    throw new Error("O nome do bairro deve ter de 1 a 60 caracteres.");
+  }
+  if (typeof taxa !== "number" || Number.isNaN(taxa) || taxa < 0 || taxa > 999) {
+    throw new Error("Informe uma taxa válida (zero ou mais).");
+  }
+  return nomeLimpo;
+}
+
+async function listarBairros() {
+  if (!CONFIG.usarBackend) {
+    return lerBairrosSimulados();
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/bairros`);
+  if (!resposta.ok) {
+    throw new Error("Não foi possível carregar os bairros.");
+  }
+  return resposta.json();
+}
+
+async function criarBairro(nome, taxa) {
+  if (!CONFIG.usarBackend) {
+    const bairros = lerBairrosSimulados();
+    const nomeLimpo = validarBairro(nome, taxa);
+
+    if (bairros.some((b) => normalizarTexto(b.nome) === normalizarTexto(nomeLimpo))) {
+      throw new Error("Já existe um bairro com esse nome.");
+    }
+
+    const novo = { id: proximoId(bairros), nome: nomeLimpo, taxa };
+    bairros.push(novo);
+    salvarBairrosSimulados(bairros);
+    return novo;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/bairros`, {
+    method: "POST",
+    headers: cabecalhosProprietaria(),
+    body: JSON.stringify({ nome, taxa })
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível cadastrar o bairro."));
+  }
+  return resposta.json();
+}
+
+async function atualizarBairro(id, nome, taxa) {
+  if (!CONFIG.usarBackend) {
+    const bairros = lerBairrosSimulados();
+    const bairro = bairros.find((b) => b.id === id);
+    if (!bairro) throw new Error("Bairro não encontrado.");
+
+    const nomeLimpo = validarBairro(nome, taxa);
+    if (bairros.some((b) => b.id !== id && normalizarTexto(b.nome) === normalizarTexto(nomeLimpo))) {
+      throw new Error("Já existe um bairro com esse nome.");
+    }
+
+    bairro.nome = nomeLimpo;
+    bairro.taxa = taxa;
+    salvarBairrosSimulados(bairros);
+    return bairro;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/bairros/${id}`, {
+    method: "PUT",
+    headers: cabecalhosProprietaria(),
+    body: JSON.stringify({ nome, taxa })
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível atualizar o bairro."));
+  }
+  return resposta.json();
+}
+
+async function excluirBairro(id) {
+  if (!CONFIG.usarBackend) {
+    salvarBairrosSimulados(lerBairrosSimulados().filter((b) => b.id !== id));
+    return;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/bairros/${id}`, {
+    method: "DELETE",
+    headers: cabecalhosProprietaria()
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível excluir o bairro."));
+  }
+}
+
+/* ---------- Consulta de CEP (serviços públicos e gratuitos) ---------- */
+// Devolve { rua, bairro, cidade, uf }, ou null se o CEP não existir.
+// Lança erro se nenhum dos serviços responder. Serve tanto na simulação quanto com o back-end.
+async function consultarCep(cep) {
+  const digitos = String(cep).replace(/\D/g, "");
+  if (digitos.length !== 8) throw new Error("CEP inválido.");
+
+  // 1) ViaCEP
+  try {
+    const resposta = await fetch(`https://viacep.com.br/ws/${digitos}/json/`);
+    if (resposta.ok) {
+      const dados = await resposta.json();
+      if (dados.erro) return null;
+
+      return {
+        rua: dados.logradouro || "",
+        bairro: dados.bairro || "",
+        cidade: dados.localidade || "",
+        uf: dados.uf || ""
+      };
+    }
+  } catch (erro) {
+    // tenta o serviço reserva
+  }
+
+  // 2) BrasilAPI (reserva)
+  const resposta = await fetch(`https://brasilapi.com.br/api/cep/v1/${digitos}`);
+  if (resposta.status === 404) return null;
+  if (!resposta.ok) throw new Error("Não foi possível consultar o CEP.");
+
+  const dados = await resposta.json();
+  return {
+    rua: dados.street || "",
+    bairro: dados.neighborhood || "",
+    cidade: dados.city || "",
+    uf: dados.state || ""
+  };
 }

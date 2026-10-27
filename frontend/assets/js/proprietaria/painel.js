@@ -175,3 +175,18 @@ async function carregarAvisosDeValidade() {
 }
 
 carregarAvisosDeValidade();
+
+/* ---------- Atualização automática ---------- */
+async function atualizarPainel() {
+  const resumo = await buscarResumoPainel();
+
+  if (dadosMudaram("painel", resumo)) {
+    mostrarResumo(resumo);
+    mostrarUltimosPedidos(resumo.ultimosPedidos);
+  }
+
+  // O aviso de validade depende da data de hoje, então é conferido sempre
+  await carregarAvisosDeValidade();
+}
+
+atualizarPeriodicamente(atualizarPainel, 15);

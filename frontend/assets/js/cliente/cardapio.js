@@ -7,8 +7,10 @@ let todosProdutos = [];
 
 /* ---------- Carrinho (guardado no navegador) ---------- */
 function atualizarContador() {
-  const total = calcularQuantidade(lerCarrinho());
   const contador = document.getElementById("carrinho-contador");
+  if (!contador) return;
+
+  const total = calcularQuantidade(lerCarrinho());
   contador.textContent = total;
   contador.hidden = total === 0;
 }
@@ -113,23 +115,6 @@ function criarCard(produto) {
   return card;
 }
 
-/* ---------- Frase inicial ---------- */
-async function mostrarFraseInicial() {
-  const titulo = document.getElementById("titulo-boas-vindas");
-  const subtitulo = document.getElementById("subtitulo-boas-vindas");
-
-  try {
-    const frase = escolherFrase(await buscarFrase());
-    titulo.textContent = frase.titulo;
-    subtitulo.textContent = frase.subtitulo;
-    subtitulo.hidden = !frase.subtitulo;
-  } catch (erro) {
-    // se algo falhar, continua o texto que já está na página
-  }
-
-  document.getElementById("boas-vindas")?.classList.remove("boas-vindas--oculto");
-}
-
 /* ---------- Categorias ---------- */
 function criarId(texto) {
   return texto
@@ -214,9 +199,11 @@ async function atualizarFuncionamento() {
     partes.push(`Entrega em ${funcionamento.entregaMin} a ${funcionamento.entregaMax} minutos`);
   }
 
-  document.getElementById("texto-horario").textContent = partes.join(" · ");
+  const texto = document.getElementById("texto-horario");
+  if (texto) texto.textContent = partes.join(" · ");
+
   document.getElementById("ponto-horario")
-    .classList.toggle("aviso-horario__ponto--fechado", !situacao.aberta);
+    ?.classList.toggle("aviso-horario__ponto--fechado", !situacao.aberta);
 
   const mudou = situacao.aberta !== lojaAberta;
   lojaAberta = situacao.aberta;
@@ -224,12 +211,40 @@ async function atualizarFuncionamento() {
 }
 
 function configurarWhatsapp() {
+  const botao = document.getElementById("btn-whatsapp");
+  if (!botao) return;
+
   const mensagem = encodeURIComponent("Olá! Vim pelo cardápio virtual da Gordelicias da Lari.");
-  document.getElementById("btn-whatsapp").href =
-    `https://wa.me/${CONFIG.loja.whatsapp}?text=${mensagem}`;
+  botao.href = `https://wa.me/${CONFIG.loja.whatsapp}?text=${mensagem}`;
 }
 
-/* ---------- Início ---------- */
+/* ---------- Frase inicial ---------- */
+async function mostrarFraseInicial() {
+  const titulo = document.getElementById("titulo-boas-vindas");
+  const subtitulo = document.getElementById("subtitulo-boas-vindas");
+
+  try {
+    const frase = escolherFrase(await buscarFrase());
+    titulo.textContent = frase.titulo;
+    subtitulo.textContent = frase.subtitulo;
+    subtitulo.hidden = !frase.subtitulo;
+  } catch (erro) {
+    // se algo falhar, continua o texto que já está na página
+  }
+
+  document.getElementById("boas-vindas")?.classList.remove("boas-vindas--oculto");
+}
+
+/* ---------- Início e atualização automática ---------- */
+async function atualizarCardapio() {
+  const mudouLoja = await atualizarFuncionamento();
+  const produtos = await listarProdutos();
+  const mudaramProdutos = dadosMudaram("produtos", produtos);
+
+  if (mudaramProdutos) todosProdutos = produtos;
+  if (mudaramProdutos || mudouLoja) aplicarBusca();
+}
+
 async function iniciar() {
   try {
     await atualizarFuncionamento();
@@ -239,20 +254,15 @@ async function iniciar() {
 
   try {
     todosProdutos = await listarProdutos();
+    dadosMudaram("produtos", todosProdutos); // ponto de partida para as próximas conferências
     mostrarCardapio(todosProdutos);
   } catch (erro) {
     document.getElementById("cardapio").textContent =
       "Não foi possível carregar o cardápio. Tente novamente em instantes.";
   }
 
-  // A cada minuto, confere se a loja abriu ou fechou e atualiza os botões
-  setInterval(async () => {
-    try {
-      if (await atualizarFuncionamento()) aplicarBusca();
-    } catch (erro) {
-      // tenta de novo no próximo minuto
-    }
-  }, 60000);
+  // Atualiza sozinho: estoque, produtos e horário de funcionamento
+  atualizarPeriodicamente(atualizarCardapio, 15);
 }
 
 configurarWhatsapp();
