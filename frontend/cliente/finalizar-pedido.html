@@ -62,10 +62,10 @@
             <p id="aviso-bairros" class="aviso-carrinho" role="alert" hidden></p>
           <div class="campos">
             <div class="campo">
-              <label for="cep">CEP (opcional)</label>
+              <label for="cep">CEP</label>
               <input type="text" id="cep" name="cep" inputmode="numeric" autocomplete="postal-code"
                     placeholder="00000-000" maxlength="9" pattern="\d{5}-?\d{3}"
-                    title="Digite os 8 números do CEP">
+                    title="Digite os 8 números do CEP" required>
               <small id="dica-cep" class="dica-campo">Digite o CEP para completar a rua automaticamente.</small>
             </div>
             <div class="campo campo--larga">
@@ -81,6 +81,7 @@
               <select id="bairro" name="bairro" required>
                 <option value="">Escolha o seu bairro</option>
               </select>
+              <small id="dica-bairro" class="dica-campo"></small>
             </div>
             <div class="campo">
               <label for="complemento">Complemento (opcional)</label>
@@ -134,18 +135,27 @@
       <aside class="resumo">
         <h2>Resumo do pedido</h2>
         <ul id="resumo-itens" class="resumo__itens"></ul>
+
         <div class="resumo__linha">
           <span>Subtotal</span>
           <span id="resumo-subtotal"></span>
         </div>
+
         <div class="resumo__linha">
           <span>Taxa de entrega</span>
           <span id="resumo-taxa">Escolha o bairro</span>
         </div>
+
+        <div id="linha-desconto" class="resumo__linha" hidden>
+          <span id="rotulo-desconto">Desconto</span>
+          <span id="resumo-desconto"></span>
+        </div>
+
         <div class="resumo__linha resumo__linha--total">
           <span>Total</span>
           <span id="resumo-total"></span>
         </div>
+
         <button id="btn-confirmar" type="submit" form="form-pedido" class="botao">Confirmar pedido</button>
         <a href="carrinho.html" class="botao botao--contorno">Voltar ao carrinho</a>
       </aside>

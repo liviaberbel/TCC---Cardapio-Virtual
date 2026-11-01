@@ -12,6 +12,9 @@ async function enviarPedido(pedido) {
       throw new Error("Escolha um bairro da lista para a entrega.");
     }
 
+    // Confere se o bairro escolhido combina com o CEP (o back-end real faz a mesma conferência)
+    const bairroConfirmado = await conferirBairroPeloCep(pedido.endereco.cep, bairro);
+
     const lista = lerProdutosSimulados();
 
     // Confere se ainda há estoque para tudo
@@ -31,8 +34,23 @@ async function enviarPedido(pedido) {
 
     const arredondar = (valor) => Math.round(valor * 100) / 100;
     const subtotal = arredondar(itens.reduce((soma, item) => soma + item.preco * item.quantidade, 0));
+
+    // Cupom (opcional): conferido de novo aqui; o desconto vale só sobre os produtos
+    let cupomUsado = null;
+    let desconto = 0;
+
+    if (pedido.cupom) {
+      cupomUsado = lerCuponsSimulados().find((c) => c.codigo === normalizarCodigoCupom(pedido.cupom));
+      if (!cupomUsado) throw new Error("Cupom não encontrado.");
+
+      const situacao = situacaoDoCupom(cupomUsado);
+      if (!situacao.valido) throw new Error(situacao.mensagem);
+
+      desconto = calcularDesconto(subtotal, cupomUsado.percentual);
+    }
+
     const taxaEntrega = bairro.taxa;
-    const total = arredondar(subtotal + taxaEntrega);
+    const total = arredondar(subtotal - desconto + taxaEntrega);
 
     const pedidos = lerPedidosSimulados();
     const numero = pedidos.length ? Math.max(...pedidos.map((p) => p.numero)) + 1 : 1001;
@@ -42,11 +60,13 @@ async function enviarPedido(pedido) {
       status: "recebido",
       data: new Date().toISOString(),
       cliente: pedido.cliente,
-      endereco: { ...pedido.endereco, bairro: bairro.nome },
+      endereco: { ...pedido.endereco, bairro: bairro.nome, bairroConfirmado },
       pagamento: pedido.pagamento,
       observacoes: pedido.observacoes,
       itens,
       subtotal,
+      cupom: cupomUsado ? cupomUsado.codigo : null,
+      desconto,
       taxaEntrega,
       total
     });
@@ -58,10 +78,19 @@ async function enviarPedido(pedido) {
     });
     salvarProdutosSimulados(lista);
 
+    // Registra o uso do cupom
+    if (cupomUsado) {
+      const cupons = lerCuponsSimulados();
+      const cupom = cupons.find((c) => c.id === cupomUsado.id);
+      cupom.usos += 1;
+      salvarCuponsSimulados(cupons);
+    }
+
     return {
       numero,
       previsaoEntrega: `${funcionamento.entregaMin} a ${funcionamento.entregaMax} minutos`,
       taxaEntrega,
+      desconto,
       total
     };
   }
@@ -319,6 +348,7 @@ async function listarPedidos() {
 }
 
 // Usado pela proprietária: avança o pedido para a próxima etapa ou cancela
+// Usado pela proprietária: avança o pedido para a próxima etapa ou cancela
 async function atualizarStatusPedido(numero, status) {
   if (!CONFIG.usarBackend) {
     const pedidos = lerPedidosSimulados();
@@ -329,14 +359,24 @@ async function atualizarStatusPedido(numero, status) {
     const permitido = atual && atual.proximo && (status === atual.proximo || status === "cancelado");
     if (!permitido) throw new Error("Esse pedido não pode mais mudar para esse status.");
 
-    // Cancelar devolve os produtos ao estoque
     if (status === "cancelado") {
+      // Devolve os produtos ao estoque
       const produtos = lerProdutosSimulados();
       pedido.itens.forEach((item) => {
         const produto = produtos.find((p) => p.id === item.produtoId || p.nome === item.nome);
         if (produto) produto.quantidade += item.quantidade;
       });
       salvarProdutosSimulados(produtos);
+
+      // Devolve o uso do cupom (ele deixa de contar no limite de usos)
+      if (pedido.cupom) {
+        const cupons = lerCuponsSimulados();
+        const cupom = cupons.find((c) => c.codigo === pedido.cupom);
+        if (cupom && cupom.usos > 0) {
+          cupom.usos -= 1;
+          salvarCuponsSimulados(cupons);
+        }
+      }
     }
 
     pedido.status = status;
@@ -373,6 +413,7 @@ async function consultarPedido(numero, telefone) {
       status: pedido.status,
       total: pedido.total,
       taxaEntrega: pedido.taxaEntrega,
+      desconto: pedido.desconto,
       itens: pedido.itens
     };
   }
@@ -775,4 +816,195 @@ async function consultarCep(cep) {
     cidade: dados.city || "",
     uf: dados.state || ""
   };
+}
+
+/* ---------- Cupons de desconto ---------- */
+const CHAVE_CUPONS = "cuponsSimulados";
+
+function lerCuponsSimulados() {
+  try {
+    const salvos = JSON.parse(localStorage.getItem(CHAVE_CUPONS));
+    if (Array.isArray(salvos)) return salvos;
+  } catch {
+    // começa com a lista vazia
+  }
+  return [];
+}
+
+function salvarCuponsSimulados(lista) {
+  localStorage.setItem(CHAVE_CUPONS, JSON.stringify(lista));
+}
+
+// Confere os dados de um cupom e devolve o nome já em maiúsculas
+function validarDadosDoCupom(dados, { exigirFutura = false } = {}) {
+  const codigo = String(dados.codigo || "").trim().toUpperCase();
+
+  if (!/^[A-Z0-9]{3,20}$/.test(codigo)) {
+    throw new Error("O nome do cupom deve ter de 3 a 20 caracteres, só com letras e números (sem espaços nem acentos).");
+  }
+  if (!Number.isInteger(dados.percentual) || dados.percentual < 1 || dados.percentual > 100) {
+    throw new Error("O desconto deve ser um número inteiro de 1 a 100.");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dados.validade || "")) {
+    throw new Error("Informe a validade do cupom.");
+  }
+  if (exigirFutura && dados.validade < hojeISO()) {
+    throw new Error("A validade não pode ser uma data que já passou.");
+  }
+  if (dados.limiteUsos != null && (!Number.isInteger(dados.limiteUsos) || dados.limiteUsos < 1)) {
+    throw new Error("O limite de usos deve ser um número inteiro maior que zero (ou deixe em branco).");
+  }
+
+  return codigo;
+}
+
+async function listarCupons() {
+  if (!CONFIG.usarBackend) {
+    return lerCuponsSimulados();
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/cupons`, { headers: cabecalhosProprietaria() });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível carregar os cupons."));
+  }
+  return resposta.json();
+}
+
+// dados: { codigo, percentual, validade, limiteUsos, ativo }
+async function criarCupom(dados) {
+  if (!CONFIG.usarBackend) {
+    const cupons = lerCuponsSimulados();
+    const codigo = validarDadosDoCupom(dados, { exigirFutura: true });
+
+    if (cupons.some((c) => c.codigo === codigo)) {
+      throw new Error("Já existe um cupom com esse nome.");
+    }
+
+    const novo = {
+      id: proximoId(cupons),
+      codigo,
+      percentual: dados.percentual,
+      validade: dados.validade,
+      limiteUsos: dados.limiteUsos ?? null,
+      ativo: dados.ativo !== false,
+      usos: 0
+    };
+    cupons.push(novo);
+    salvarCuponsSimulados(cupons);
+    return novo;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/cupons`, {
+    method: "POST",
+    headers: cabecalhosProprietaria(),
+    body: JSON.stringify(dados)
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível criar o cupom."));
+  }
+  return resposta.json();
+}
+
+async function atualizarCupom(id, dados) {
+  if (!CONFIG.usarBackend) {
+    const cupons = lerCuponsSimulados();
+    const cupom = cupons.find((c) => c.id === id);
+    if (!cupom) throw new Error("Cupom não encontrado.");
+
+    // Uma validade já passada só é aceita se não foi alterada
+    const codigo = validarDadosDoCupom(dados, { exigirFutura: dados.validade !== cupom.validade });
+
+    if (cupons.some((c) => c.id !== id && c.codigo === codigo)) {
+      throw new Error("Já existe um cupom com esse nome.");
+    }
+
+    cupom.codigo = codigo;
+    cupom.percentual = dados.percentual;
+    cupom.validade = dados.validade;
+    cupom.limiteUsos = dados.limiteUsos ?? null;
+    cupom.ativo = dados.ativo ?? cupom.ativo;
+    salvarCuponsSimulados(cupons);
+    return cupom;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/cupons/${id}`, {
+    method: "PUT",
+    headers: cabecalhosProprietaria(),
+    body: JSON.stringify(dados)
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível atualizar o cupom."));
+  }
+  return resposta.json();
+}
+
+async function excluirCupom(id) {
+  if (!CONFIG.usarBackend) {
+    salvarCuponsSimulados(lerCuponsSimulados().filter((c) => c.id !== id));
+    return;
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/cupons/${id}`, {
+    method: "DELETE",
+    headers: cabecalhosProprietaria()
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível excluir o cupom."));
+  }
+}
+
+// Usado pelo cliente: devolve { codigo, percentual } se o cupom puder ser usado agora.
+// Não consome o uso do cupom (o uso só conta quando o pedido é criado).
+async function conferirCupom(codigo) {
+  if (!CONFIG.usarBackend) {
+    const cupom = lerCuponsSimulados().find((c) => c.codigo === normalizarCodigoCupom(codigo));
+    if (!cupom) throw new Error("Cupom não encontrado.");
+
+    const situacao = situacaoDoCupom(cupom);
+    if (!situacao.valido) throw new Error(situacao.mensagem);
+
+    return { codigo: cupom.codigo, percentual: cupom.percentual };
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/cupons/validar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ codigo })
+  });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Cupom inválido."));
+  }
+  return resposta.json();
+}
+
+/* ---------- Conferência do bairro pelo CEP ---------- */
+// O back-end real faz a mesma conferência. Devolve true se o CEP confirma o bairro,
+// false se não deu para conferir, e lança erro se o CEP não combina com o pedido.
+async function conferirBairroPeloCep(cep, bairro) {
+  const digitos = String(cep || "").replace(/\D/g, "");
+  if (digitos.length !== 8) {
+    throw new Error("Informe um CEP válido.");
+  }
+
+  let endereco;
+  try {
+    endereco = await consultarCep(digitos);
+  } catch (erro) {
+    return false; // serviço de CEP fora do ar: não dá para conferir
+  }
+
+  if (!endereco) {
+    throw new Error("Não encontramos esse CEP. Confira o número informado.");
+  }
+  if (normalizarTexto(endereco.cidade) !== "joanopolis") {
+    throw new Error("Entregamos somente em Joanópolis. Confira o CEP informado.");
+  }
+  if (!endereco.bairro) {
+    return false; // CEP genérico, sem bairro
+  }
+  if (normalizarTexto(endereco.bairro) !== normalizarTexto(bairro.nome)) {
+    throw new Error(`O bairro escolhido não corresponde ao CEP informado (${endereco.bairro}). Confira o CEP e o bairro.`);
+  }
+
+  return true;
 }

@@ -53,6 +53,21 @@
         <span id="resumo-quantidade"></span>
       </div>
 
+      <div class="cupom">
+        <label for="campo-cupom">Cupom de desconto (opcional)</label>
+        <div class="cupom__linha">
+          <input type="text" id="campo-cupom" class="campo-maiusculo" maxlength="20"
+                autocomplete="off" placeholder="Digite o cupom">
+          <button type="button" id="btn-aplicar-cupom" class="botao botao--contorno botao--pequeno">Aplicar</button>
+        </div>
+        <p id="mensagem-cupom" class="nota" hidden></p>
+      </div>
+
+      <div id="linha-desconto" class="resumo__linha" hidden>
+        <span id="rotulo-desconto">Desconto</span>
+        <span id="resumo-desconto"></span>
+      </div>
+
       <div class="resumo__linha resumo__linha--total">
         <span>Total</span>
         <span id="resumo-total"></span>

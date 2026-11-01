@@ -55,6 +55,10 @@ function mostrarResultado(pedido) {
     lista.appendChild(linha);
   });
 
+  const temDesconto = pedido.desconto > 0;
+  document.getElementById("res-linha-desconto").hidden = !temDesconto;
+  document.getElementById("res-desconto").textContent = temDesconto ? `− ${formatarPreco(pedido.desconto)}` : "";
+
   document.getElementById("res-linha-taxa").hidden = pedido.taxaEntrega === undefined;
   document.getElementById("res-taxa").textContent =
   pedido.taxaEntrega > 0 ? formatarPreco(pedido.taxaEntrega) : "Grátis";

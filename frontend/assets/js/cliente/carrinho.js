@@ -1,4 +1,7 @@
 const listaItens = document.getElementById("lista-itens");
+const campoCupom = document.getElementById("campo-cupom");
+const botaoCupom = document.getElementById("btn-aplicar-cupom");
+const mensagemCupom = document.getElementById("mensagem-cupom");
 let estoque = {}; // id do produto -> quantidade disponível
 
 function alterarQuantidade(id, variacao) {
@@ -76,6 +79,107 @@ function criarItem(item) {
   return elemento;
 }
 
+/* ---------- Resumo e cupom ---------- */
+// Mostra o desconto (se houver cupom aplicado) e o total, sempre calculados de novo
+function atualizarTotaisDoResumo() {
+  const subtotal = calcularTotal(lerCarrinho());
+  const cupom = lerCupomAplicado();
+  const desconto = cupom ? calcularDesconto(subtotal, cupom.percentual) : 0;
+
+  const linha = document.getElementById("linha-desconto");
+  if (linha) {
+    linha.hidden = !cupom;
+
+    if (cupom) {
+      document.getElementById("rotulo-desconto").textContent = `Cupom ${cupom.codigo} (${cupom.percentual}%)`;
+      document.getElementById("resumo-desconto").textContent = `− ${formatarPreco(desconto)}`;
+    }
+  }
+
+  document.getElementById("resumo-total").textContent = formatarPreco(subtotal - desconto);
+}
+
+function mostrarMensagemCupom(texto) {
+  if (!mensagemCupom) return;
+  mensagemCupom.textContent = texto;
+  mensagemCupom.hidden = !texto;
+}
+
+// Ajusta o campo e o botão conforme exista ou não um cupom aplicado
+function mostrarEstadoCupom() {
+  if (!campoCupom || !botaoCupom) return;
+
+  const cupom = lerCupomAplicado();
+  if (cupom) campoCupom.value = cupom.codigo;
+  campoCupom.disabled = Boolean(cupom);
+  botaoCupom.textContent = cupom ? "Remover" : "Aplicar";
+}
+
+async function aplicarOuRemoverCupom() {
+  if (lerCupomAplicado()) {
+    salvarCupomAplicado(null);
+    campoCupom.value = "";
+    mostrarMensagemCupom("Cupom removido.");
+    mostrarEstadoCupom();
+    atualizarTotaisDoResumo();
+    return;
+  }
+
+  const codigo = normalizarCodigoCupom(campoCupom.value);
+  if (!codigo) {
+    mostrarMensagemCupom("Digite o nome do cupom.");
+    return;
+  }
+
+  botaoCupom.disabled = true;
+
+  try {
+    const cupom = await conferirCupom(codigo);
+    salvarCupomAplicado({ codigo: cupom.codigo, percentual: cupom.percentual });
+    mostrarMensagemCupom(`Cupom ${cupom.codigo} aplicado: ${cupom.percentual}% de desconto nos produtos.`);
+  } catch (erro) {
+    mostrarMensagemCupom(erro instanceof TypeError
+      ? "Não foi possível conferir o cupom agora. Tente novamente."
+      : erro.message);
+  } finally {
+    botaoCupom.disabled = false;
+  }
+
+  mostrarEstadoCupom();
+  atualizarTotaisDoResumo();
+}
+
+// Confere de novo um cupom que já estava aplicado (ele pode ter vencido desde a última visita)
+async function revalidarCupom() {
+  const aplicado = lerCupomAplicado();
+  if (!aplicado) return;
+
+  try {
+    const cupom = await conferirCupom(aplicado.codigo);
+    salvarCupomAplicado({ codigo: cupom.codigo, percentual: cupom.percentual });
+  } catch (erro) {
+    if (erro instanceof TypeError) return; // sem conexão: o servidor confere no envio do pedido
+
+    salvarCupomAplicado(null);
+    campoCupom.value = "";
+    mostrarMensagemCupom(`O cupom ${aplicado.codigo} foi removido. ${erro.message}`);
+  }
+}
+
+campoCupom?.addEventListener("input", () => {
+  campoCupom.value = normalizarCodigoCupom(campoCupom.value);
+});
+
+campoCupom?.addEventListener("keydown", (evento) => {
+  if (evento.key === "Enter") {
+    evento.preventDefault();
+    aplicarOuRemoverCupom();
+  }
+});
+
+botaoCupom?.addEventListener("click", aplicarOuRemoverCupom);
+
+/* ---------- Carrinho ---------- */
 function mostrarCarrinho() {
   const carrinho = lerCarrinho();
   const vazio = carrinho.length === 0;
@@ -87,7 +191,7 @@ function mostrarCarrinho() {
   carrinho.forEach((item) => listaItens.appendChild(criarItem(item)));
 
   document.getElementById("resumo-quantidade").textContent = calcularQuantidade(carrinho);
-  document.getElementById("resumo-total").textContent = formatarPreco(calcularTotal(carrinho));
+  atualizarTotaisDoResumo();
 }
 
 function mostrarAvisos(avisos) {
@@ -128,6 +232,10 @@ function atualizarFinalizacao(situacao) {
 document.getElementById("btn-limpar")?.addEventListener("click", () => {
   if (confirm("Deseja esvaziar o carrinho?")) {
     salvarCarrinho([]);
+    salvarCupomAplicado(null);
+    if (campoCupom) campoCupom.value = "";
+    mostrarMensagemCupom("");
+    mostrarEstadoCupom();
     mostrarCarrinho();
   }
 });
@@ -168,6 +276,8 @@ async function iniciar() {
     // Se não der para conferir, o pedido ainda é conferido na hora do envio
   }
 
+  if (campoCupom) await revalidarCupom();
+  mostrarEstadoCupom();
   mostrarCarrinho();
 
   atualizarPeriodicamente(atualizarCarrinho, 20);

@@ -119,6 +119,11 @@ function abrirDetalhes(pedido) {
   entrega.appendChild(criarParagrafo(`${e.rua}, ${e.numero}${e.complemento ? ` - ${e.complemento}` : ""}`));
   entrega.appendChild(criarParagrafo(e.bairro));
   entrega.appendChild(criarParagrafo(`Joanópolis${e.cep ? ` · CEP ${formatarCep(e.cep)}` : ""}`));
+    if (e.bairroConfirmado === false) {
+    entrega.appendChild(criarParagrafo(
+      "Atenção: o bairro foi informado pelo cliente e não pôde ser confirmado pelo CEP. Confira o endereço antes de entregar."
+    ));
+  }
   if (e.referencia) entrega.appendChild(criarParagrafo(`Referência: ${e.referencia}`));
 
   // Pagamento
@@ -140,7 +145,15 @@ function abrirDetalhes(pedido) {
   });
   itens.appendChild(lista);
 
-    const blocos = [criarBlocoStatus(pedido), cliente, entrega, pagamento, itens];
+  const blocos = [criarBlocoStatus(pedido), cliente, entrega, pagamento, itens];
+
+  if (pedido.desconto > 0) {
+    blocos.push(criarLinhaDupla(
+      `Desconto (cupom ${pedido.cupom})`,
+      `− ${formatarPreco(pedido.desconto)}`,
+      "detalhe-linha"
+    ));
+  }
 
   if (pedido.taxaEntrega !== undefined) {
     blocos.push(criarLinhaDupla(

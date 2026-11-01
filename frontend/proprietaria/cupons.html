@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gordelicias da Lari | Cupons</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <link rel="stylesheet" href="../assets/css/variaveis.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/componentes.css">
+  <link rel="stylesheet" href="../assets/css/proprietaria.css">
+</head>
+<body class="layout-interno" data-pagina="cupons">
+
+  <aside id="menu-lateral" class="menu-lateral"></aside>
+
+  <main class="conteudo-interno">
+    <h1 class="titulo-pagina">Cupons de desconto</h1>
+    <p class="subtitulo-pagina">
+      Crie cupons para os clientes digitarem no carrinho. O desconto vale só sobre os produtos, e não sobre a
+      taxa de entrega. O mesmo cupom pode ser usado quantas vezes os clientes quiserem, até vencer ou até
+      atingir o limite de usos (se você definir um).
+    </p>
+
+    <div id="aviso-cupons" class="aviso" role="status" hidden></div>
+    <div id="erro-cupons" class="mensagem-erro" role="alert" hidden></div>
+
+    <section class="bloco-interno">
+      <h2 id="titulo-form-cupom">Novo cupom</h2>
+
+      <form id="form-cupom" class="form-cupom">
+  <div class="campo">
+    <label for="codigo-cupom">Nome do cupom</label>
+    <input type="text" id="codigo-cupom" class="campo-maiusculo" maxlength="20"
+           autocomplete="off" placeholder="Ex.: PASCOA10" required>
+    <small class="dica-campo">De 3 a 20 letras e números, sem espaços nem acentos.</small>
+  </div>
+
+  <div class="campo">
+    <label for="percentual-cupom">Desconto (%)</label>
+    <input type="number" id="percentual-cupom" min="1" max="100" step="1" placeholder="10" required>
+    <small class="dica-campo">De 1 a 100.</small>
+  </div>
+
+  <div class="campo">
+    <label for="validade-cupom">Válido até</label>
+    <input type="date" id="validade-cupom" required>
+    <small class="dica-campo">Vale até o fim desse dia.</small>
+  </div>
+
+  <div class="campo">
+    <label for="limite-cupom">Limite de usos</label>
+    <input type="number" id="limite-cupom" min="1" step="1" placeholder="Sem limite">
+    <small class="dica-campo">Opcional. Em branco, não há limite.</small>
+  </div>
+
+  <div class="acoes-form-cupom">
+    <button type="submit" id="btn-salvar-cupom" class="botao">Adicionar</button>
+    <button type="button" id="btn-cancelar-cupom" class="botao botao--contorno" hidden>Cancelar edição</button>
+  </div>
+</form>
+    </section>
+
+    <section class="bloco-interno">
+      <h2>Seus cupons</h2>
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>Cupom</th>
+              <th>Desconto</th>
+              <th>Válido até</th>
+              <th>Usos</th>
+              <th>Situação</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-cupons"></tbody>
+        </table>
+      </div>
+      <p id="sem-cupons" class="nota" hidden>Nenhum cupom cadastrado ainda.</p>
+    </section>
+  </main>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/proprietaria/auth.js"></script>
+  <script src="../assets/js/proprietaria/menu.js"></script>
+  <script src="../assets/js/proprietaria/cupons.js"></script>
+</body>
+</html>

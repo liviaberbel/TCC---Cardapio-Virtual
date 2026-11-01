@@ -800,3 +800,48 @@
   justify-content: space-between;
   gap: 12px;
 }
+
+/* ---------- Cupons ---------- */
+.acoes-form-cupom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- Formulário de cupom: campos alinhados pelo topo ---------- */
+.form-cupom {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.5fr) minmax(110px, 0.7fr) minmax(170px, 1fr) minmax(130px, 0.8fr) auto;
+  gap: 8px 16px;
+  align-items: start;
+}
+
+.form-cupom .campo {
+  min-width: 0;
+}
+
+.form-cupom input {
+  height: 44px;
+}
+
+/* Alinha os botões com os campos (desce a altura do rótulo) */
+.form-cupom .acoes-form-cupom {
+  padding-top: 30px;
+}
+
+@media (max-width: 1100px) {
+  .form-cupom {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-cupom .acoes-form-cupom {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .form-cupom {
+    grid-template-columns: 1fr;
+  }
+}

@@ -257,3 +257,47 @@ function formatarCep(valor) {
   const numeros = valor.replace(/\D/g, "").slice(0, 8);
   return numeros.length > 5 ? `${numeros.slice(0, 5)}-${numeros.slice(5)}` : numeros;
 }
+
+/* ---------- Cupom de desconto ---------- */
+const CHAVE_CUPOM = "cupomAplicado";
+
+// Cupom que o cliente aplicou no carrinho: { codigo, percentual } ou null
+function lerCupomAplicado() {
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_CUPOM));
+  } catch {
+    return null;
+  }
+}
+
+function salvarCupomAplicado(cupom) {
+  if (cupom) {
+    localStorage.setItem(CHAVE_CUPOM, JSON.stringify(cupom));
+  } else {
+    localStorage.removeItem(CHAVE_CUPOM);
+  }
+}
+
+// Deixa só letras e números, em maiúsculas
+function normalizarCodigoCupom(texto) {
+  return String(texto).toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+// Desconto em reais, arredondado para centavos. Vale só sobre os produtos.
+function calcularDesconto(subtotal, percentual) {
+  return Math.round(subtotal * percentual) / 100;
+}
+
+// cupom: { ativo, validade, limiteUsos, usos }
+function situacaoDoCupom(cupom) {
+  if (!cupom.ativo) {
+    return { valido: false, estado: "desativado", mensagem: "Este cupom não está mais disponível." };
+  }
+  if (cupom.validade.slice(0, 10) < hojeISO()) {
+    return { valido: false, estado: "vencido", mensagem: "Este cupom venceu." };
+  }
+  if (cupom.limiteUsos != null && cupom.usos >= cupom.limiteUsos) {
+    return { valido: false, estado: "esgotado", mensagem: "Este cupom atingiu o limite de usos." };
+  }
+  return { valido: true, estado: "ativo", mensagem: "" };
+}

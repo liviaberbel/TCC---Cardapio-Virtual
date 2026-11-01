@@ -593,3 +593,48 @@ html {
 .dica-campo {
   font-size: 0.8rem;
 }
+
+/* ---------- Cupom no carrinho ---------- */
+.cupom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cupom label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.cupom__linha {
+  display: flex;
+  gap: 8px;
+}
+
+.cupom__linha input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 2px solid var(--rosa-claro);
+  border-radius: var(--raio-pequeno);
+  background: var(--branco);
+}
+
+.cupom__linha input:focus {
+  outline: none;
+  border-color: var(--rosa);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rosa) 25%, transparent);
+}
+
+.cupom__linha input:disabled {
+  opacity: 0.7;
+}
+
+.cupom .nota {
+  margin: 0;
+}
+
+.campo select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
