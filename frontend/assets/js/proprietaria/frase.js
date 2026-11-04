@@ -23,22 +23,12 @@ const SUGESTOES = [
 ];
 
 function mostrarAviso(texto) {
-  erroFrase.hidden = true;
-  avisoFrase.textContent = texto;
-  avisoFrase.hidden = false;
-
-  clearTimeout(temporizadorAviso);
-  temporizadorAviso = setTimeout(() => {
-    avisoFrase.hidden = true;
-  }, 3000);
+  mostrarToast(texto, "sucesso");
 }
 
 function mostrarErro(texto) {
-  avisoFrase.hidden = true;
-  erroFrase.textContent = texto;
-  erroFrase.hidden = false;
+  mostrarToast(texto, "erro");
 }
-
 function modoAtual() {
   return camposFrase.modo.value;
 }

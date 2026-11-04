@@ -16,8 +16,7 @@ let validadeOriginal = ""; // validade que o produto já tinha (na edição)
 let fotoAtual = null; // endereço da foto que o produto já tem (na edição)
 
 function mostrarErro(texto) {
-  caixaErro.textContent = texto;
-  caixaErro.hidden = false;
+  mostrarToast(texto, "erro");
 }
 
 function mostrarPreview(origem) {

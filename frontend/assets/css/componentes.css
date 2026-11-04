@@ -237,3 +237,104 @@
 .campo-maiusculo {
   text-transform: uppercase;
 }
+
+/* ---------- Avisos rápidos (toast) ---------- */
+.area-toasts {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--raio-pequeno);
+  box-shadow: 0 6px 20px rgba(94, 77, 69, 0.25);
+  font-size: 0.95rem;
+  font-weight: 700;
+  pointer-events: auto;
+  animation: toast-entrar 0.25s ease-out;
+}
+
+.toast > i {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+
+.toast__texto {
+  flex: 1;
+}
+
+.toast__fechar {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.toast__fechar:hover {
+  opacity: 1;
+}
+
+.toast--sucesso {
+  background: var(--turquesa);
+  color: var(--marrom);
+}
+
+.toast--erro {
+  background: var(--marrom);
+  color: var(--branco);
+}
+
+.toast--info {
+  background: var(--rosa-claro);
+  color: var(--marrom);
+}
+
+.toast--saindo {
+  animation: toast-sair 0.25s ease-in forwards;
+}
+
+@keyframes toast-entrar {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-sair {
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@media (max-width: 520px) {
+  .area-toasts {
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast--saindo {
+    animation: none;
+  }
+}

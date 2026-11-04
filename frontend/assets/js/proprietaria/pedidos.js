@@ -267,15 +267,11 @@ const tituloOriginal = document.title;
 let temporizadorNovoPedido;
 
 function avisarNovoPedido(quantidade) {
-  avisoNovoPedido.textContent = quantidade === 1
-    ? "Chegou 1 novo pedido!"
-    : `Chegaram ${quantidade} novos pedidos!`;
-  avisoNovoPedido.hidden = false;
-
-  clearTimeout(temporizadorNovoPedido);
-  temporizadorNovoPedido = setTimeout(() => {
-    avisoNovoPedido.hidden = true;
-  }, 8000);
+  mostrarToast(
+    quantidade === 1 ? "Chegou 1 novo pedido!" : `Chegaram ${quantidade} novos pedidos!`,
+    "info",
+    8000
+  );
 
   // Se a aba está em segundo plano, o título chama a atenção
   if (document.hidden) {

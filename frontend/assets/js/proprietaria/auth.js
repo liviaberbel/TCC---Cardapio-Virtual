@@ -55,10 +55,9 @@ if (formLogin) {
       sessionStorage.setItem(CHAVE_SESSAO, resposta.token);
       window.location.href = "painel.html";
     } catch (erro) {
-      mensagemErro.textContent = erro instanceof TypeError
+              mostrarToast(erro instanceof TypeError
         ? "Não foi possível conectar ao servidor. Tente novamente."
-        : erro.message;
-      mensagemErro.hidden = false;
+        : erro.message, "erro");
       botaoEntrar.disabled = false;
       botaoEntrar.textContent = "Entrar";
     }

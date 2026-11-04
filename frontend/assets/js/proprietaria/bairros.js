@@ -9,20 +9,11 @@ let temporizadorAviso;
 let bairros = [];
 
 function mostrarAviso(texto) {
-  erroBairros.hidden = true;
-  avisoBairros.textContent = texto;
-  avisoBairros.hidden = false;
-
-  clearTimeout(temporizadorAviso);
-  temporizadorAviso = setTimeout(() => {
-    avisoBairros.hidden = true;
-  }, 3000);
+  mostrarToast(texto, "sucesso");
 }
 
 function mostrarErro(texto) {
-  avisoBairros.hidden = true;
-  erroBairros.textContent = texto;
-  erroBairros.hidden = false;
+  mostrarToast(texto, "erro");
 }
 
 function criarBotaoIcone(icone, rotulo) {

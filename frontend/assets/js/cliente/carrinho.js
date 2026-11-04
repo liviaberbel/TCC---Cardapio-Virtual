@@ -99,10 +99,8 @@ function atualizarTotaisDoResumo() {
   document.getElementById("resumo-total").textContent = formatarPreco(subtotal - desconto);
 }
 
-function mostrarMensagemCupom(texto) {
-  if (!mensagemCupom) return;
-  mensagemCupom.textContent = texto;
-  mensagemCupom.hidden = !texto;
+function mostrarMensagemCupom(texto, tipo = "sucesso") {
+  if (texto) mostrarToast(texto, tipo);
 }
 
 // Ajusta o campo e o botão conforme exista ou não um cupom aplicado
@@ -119,7 +117,7 @@ async function aplicarOuRemoverCupom() {
   if (lerCupomAplicado()) {
     salvarCupomAplicado(null);
     campoCupom.value = "";
-    mostrarMensagemCupom("Cupom removido.");
+    mostrarMensagemCupom("Cupom removido.", "info");
     mostrarEstadoCupom();
     atualizarTotaisDoResumo();
     return;
@@ -127,7 +125,7 @@ async function aplicarOuRemoverCupom() {
 
   const codigo = normalizarCodigoCupom(campoCupom.value);
   if (!codigo) {
-    mostrarMensagemCupom("Digite o nome do cupom.");
+    mostrarMensagemCupom("Digite o nome do cupom.", "erro");
     return;
   }
 
@@ -140,7 +138,7 @@ async function aplicarOuRemoverCupom() {
   } catch (erro) {
     mostrarMensagemCupom(erro instanceof TypeError
       ? "Não foi possível conferir o cupom agora. Tente novamente."
-      : erro.message);
+      : erro.message, "erro");
   } finally {
     botaoCupom.disabled = false;
   }
@@ -162,7 +160,7 @@ async function revalidarCupom() {
 
     salvarCupomAplicado(null);
     campoCupom.value = "";
-    mostrarMensagemCupom(`O cupom ${aplicado.codigo} foi removido. ${erro.message}`);
+    mostrarMensagemCupom(`O cupom ${aplicado.codigo} foi removido. ${erro.message}`, "erro");
   }
 }
 

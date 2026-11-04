@@ -301,3 +301,62 @@ function situacaoDoCupom(cupom) {
   }
   return { valido: true, estado: "ativo", mensagem: "" };
 }
+
+/* ---------- Avisos rápidos (toast) ---------- */
+// tipo: "sucesso", "erro" ou "info".
+// Aparece no canto da tela e some sozinho, sem empurrar o conteúdo da página.
+function mostrarToast(texto, tipo = "sucesso", duracaoMs) {
+  let area = document.getElementById("area-toasts");
+
+  if (!area) {
+    area = document.createElement("div");
+    area.id = "area-toasts";
+    area.className = "area-toasts";
+    document.body.appendChild(area);
+  }
+
+  const icones = {
+    sucesso: "bi-check-circle-fill",
+    erro: "bi-exclamation-circle-fill",
+    info: "bi-bell-fill"
+  };
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast--${tipo}`;
+  toast.setAttribute("role", tipo === "erro" ? "alert" : "status");
+
+  const icone = document.createElement("i");
+  icone.className = `bi ${icones[tipo] || icones.info}`;
+
+  const mensagem = document.createElement("span");
+  mensagem.className = "toast__texto";
+  mensagem.textContent = texto;
+
+  const fechar = document.createElement("button");
+  fechar.type = "button";
+  fechar.className = "toast__fechar";
+  fechar.setAttribute("aria-label", "Fechar aviso");
+  fechar.innerHTML = `<i class="bi bi-x-lg"></i>`;
+
+  toast.append(icone, mensagem, fechar);
+  area.appendChild(toast);
+
+  let removido = false;
+
+  function remover() {
+    if (removido) return;
+    removido = true;
+
+    toast.classList.add("toast--saindo");
+    toast.addEventListener("animationend", () => toast.remove(), { once: true });
+    setTimeout(() => toast.remove(), 400); // garantia, caso a animação não rode
+  }
+
+  fechar.addEventListener("click", remover);
+  setTimeout(remover, duracaoMs ?? (tipo === "erro" ? 6000 : 3500));
+
+  // Não deixa acumular muitos avisos na tela
+  while (area.children.length > 4) {
+    area.firstElementChild.remove();
+  }
+}

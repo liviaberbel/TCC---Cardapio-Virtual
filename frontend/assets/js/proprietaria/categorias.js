@@ -7,20 +7,11 @@ const campoNome = document.getElementById("nome-categoria");
 let temporizadorAviso;
 
 function mostrarAviso(texto) {
-  erroCategorias.hidden = true;
-  avisoCategorias.textContent = texto;
-  avisoCategorias.hidden = false;
-
-  clearTimeout(temporizadorAviso);
-  temporizadorAviso = setTimeout(() => {
-    avisoCategorias.hidden = true;
-  }, 3000);
+  mostrarToast(texto, "sucesso");
 }
 
 function mostrarErro(texto) {
-  avisoCategorias.hidden = true;
-  erroCategorias.textContent = texto;
-  erroCategorias.hidden = false;
+  mostrarToast(texto, "erro");
 }
 
 function criarBotaoIcone(icone, rotulo) {

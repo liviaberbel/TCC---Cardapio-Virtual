@@ -5,20 +5,11 @@ const erroProdutos = document.getElementById("erro-produtos");
 let temporizadorAviso;
 
 function mostrarAviso(texto) {
-  erroProdutos.hidden = true;
-  avisoProdutos.textContent = texto;
-  avisoProdutos.hidden = false;
-
-  clearTimeout(temporizadorAviso);
-  temporizadorAviso = setTimeout(() => {
-    avisoProdutos.hidden = true;
-  }, 3000);
+  mostrarToast(texto, "sucesso");
 }
 
 function mostrarErro(texto) {
-  avisoProdutos.hidden = true;
-  erroProdutos.textContent = texto;
-  erroProdutos.hidden = false;
+  mostrarToast(texto, "erro");
 }
 
 function atualizarSelo(selo, quantidade) {

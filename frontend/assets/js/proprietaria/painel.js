@@ -98,7 +98,6 @@ camposFuncionamento.aberta.addEventListener("change", alternarCampos);
 
 formFuncionamento.addEventListener("submit", async (evento) => {
   evento.preventDefault();
-  erroFuncionamento.hidden = true;
 
   const dados = {
     aberta: camposFuncionamento.aberta.checked,
@@ -109,27 +108,21 @@ formFuncionamento.addEventListener("submit", async (evento) => {
   };
 
   if (dados.aberta && dados.fechamento <= dados.abertura) {
-    erroFuncionamento.textContent = "O horário de fechamento precisa ser depois do de abertura.";
-    erroFuncionamento.hidden = false;
+    mostrarToast("O horário de fechamento precisa ser depois do de abertura.", "erro");
     return;
   }
 
   if (dados.aberta && dados.entregaMax < dados.entregaMin) {
-    erroFuncionamento.textContent = "O tempo máximo de entrega não pode ser menor que o mínimo.";
-    erroFuncionamento.hidden = false;
+    mostrarToast("O tempo máximo de entrega não pode ser menor que o mínimo.", "erro");
     return;
   }
 
   try {
     const salvo = await salvarFuncionamento(dados);
     mostrarSituacaoLoja(salvo);
-
-    avisoFuncionamento.textContent = "Funcionamento de hoje salvo.";
-    avisoFuncionamento.hidden = false;
-    setTimeout(() => { avisoFuncionamento.hidden = true; }, 3000);
+    mostrarToast("Funcionamento de hoje salvo.", "sucesso");
   } catch (erro) {
-    erroFuncionamento.textContent = erro.message;
-    erroFuncionamento.hidden = false;
+    mostrarToast(erro.message, "erro");
   }
 });
 

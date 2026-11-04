@@ -24,20 +24,11 @@ const SELOS_CUPOM = {
 };
 
 function mostrarAviso(texto) {
-  erroCupons.hidden = true;
-  avisoCupons.textContent = texto;
-  avisoCupons.hidden = false;
-
-  clearTimeout(temporizadorAviso);
-  temporizadorAviso = setTimeout(() => {
-    avisoCupons.hidden = true;
-  }, 3000);
+  mostrarToast(texto, "sucesso");
 }
 
 function mostrarErro(texto) {
-  avisoCupons.hidden = true;
-  erroCupons.textContent = texto;
-  erroCupons.hidden = false;
+  mostrarToast(texto, "erro");
 }
 
 function criarBotaoIcone(icone, rotulo) {
