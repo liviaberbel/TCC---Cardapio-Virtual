@@ -67,9 +67,9 @@ A paleta de cores do sistema é baseada na logo da Gordelicias da Lari:
 
 | Integrante | Responsabilidade |
 |---|---|
-| _Nome_ | Front-end |
-| _Nome_ | Back-end |
-| _Nome_ | Banco de dados |
+| _Livia Berbel_ | Front-end |
+| _Luana Sacoman_ | Back-end |
+| _Angélica Leticia_ | Banco de dados |
 
 ## 🚀 Como executar
 
