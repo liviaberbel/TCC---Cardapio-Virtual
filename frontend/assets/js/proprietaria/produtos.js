@@ -1,9 +1,9 @@
 const corpoTabela = document.getElementById("tabela-produtos");
 const semProdutos = document.getElementById("sem-produtos");
-const avisoProdutos = document.getElementById("aviso-produtos");
-const erroProdutos = document.getElementById("erro-produtos");
-let temporizadorAviso;
+const campoBusca = document.getElementById("busca-produtos");
+let todosProdutos = [];
 
+/* ---------- Avisos ---------- */
 function mostrarAviso(texto) {
   mostrarToast(texto, "sucesso");
 }
@@ -12,11 +12,23 @@ function mostrarErro(texto) {
   mostrarToast(texto, "erro");
 }
 
+/* ---------- Linhas da tabela ---------- */
 function atualizarSelo(selo, quantidade) {
   const esgotado = quantidade <= 0;
   selo.textContent = esgotado ? "Esgotado" : "Disponível";
   selo.classList.toggle("selo--esgotado", esgotado);
   selo.classList.toggle("selo--disponivel", !esgotado);
+}
+
+// Mostra "N pessoas querem este doce" só quando o produto está esgotado e há interessados
+function atualizarInteresse(elemento, produto) {
+  const total = produto.interessados || 0;
+  const mostrar = produto.quantidade <= 0 && total > 0;
+
+  elemento.hidden = !mostrar;
+  if (mostrar) {
+    elemento.textContent = total === 1 ? "1 pessoa quer este doce" : `${total} pessoas querem este doce`;
+  }
 }
 
 function criarLinha(produto) {
@@ -32,7 +44,10 @@ function criarLinha(produto) {
     <td>
       <input type="number" class="campo-quantidade" min="0" step="1" aria-label="Quantidade disponível">
     </td>
-    <td><span class="selo"></span></td>
+    <td>
+      <span class="selo"></span>
+      <span class="produto-interesse" hidden></span>
+    </td>
     <td>
       <div class="acoes-linha">
         <a class="botao-icone" data-acao="editar" aria-label="Editar produto"><i class="bi bi-pencil"></i></a>
@@ -57,8 +72,10 @@ function criarLinha(produto) {
 
   const campo = linha.querySelector(".campo-quantidade");
   const selo = linha.querySelector(".selo");
+  const interesse = linha.querySelector(".produto-interesse");
   campo.value = produto.quantidade;
   atualizarSelo(selo, produto.quantidade);
+  atualizarInteresse(interesse, produto);
 
   if (produto.imagem) {
     const img = document.createElement("img");
@@ -80,9 +97,14 @@ function criarLinha(produto) {
 
     try {
       await atualizarQuantidade(produto.id, quantidade);
+
+      // Se o produto voltou ao estoque, a contagem de interessados recomeça do zero
+      if (produto.quantidade <= 0 && quantidade > 0) produto.interessados = 0;
+
       produto.quantidade = quantidade;
       campo.value = quantidade;
       atualizarSelo(selo, quantidade);
+      atualizarInteresse(interesse, produto);
       mostrarAviso(`Quantidade de "${produto.nome}" atualizada.`);
     } catch (erro) {
       campo.value = produto.quantidade;
@@ -106,9 +128,7 @@ function criarLinha(produto) {
   return linha;
 }
 
-let todosProdutos = [];
-const campoBusca = document.getElementById("busca-produtos");
-
+/* ---------- Lista, busca e atualização ---------- */
 function mostrarTabela(produtos, termo = "") {
   corpoTabela.innerHTML = "";
 
@@ -135,10 +155,6 @@ async function carregarProdutos() {
   }
 }
 
-campoBusca.addEventListener("input", aplicarBusca);
-carregarProdutos();
-
-/* ---------- Atualização automática ---------- */
 async function atualizarProdutos() {
   const produtos = await listarProdutos();
   if (!dadosMudaram("produtos", produtos)) return;
@@ -146,6 +162,9 @@ async function atualizarProdutos() {
   todosProdutos = produtos;
   aplicarBusca();
 }
+
+campoBusca.addEventListener("input", aplicarBusca);
+carregarProdutos();
 
 // Não atualiza enquanto a proprietária está com o cursor em um campo de quantidade
 atualizarPeriodicamente(atualizarProdutos, 15, {

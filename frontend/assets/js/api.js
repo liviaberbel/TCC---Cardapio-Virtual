@@ -213,7 +213,13 @@ async function atualizarQuantidade(id, quantidade) {
   if (!CONFIG.usarBackend) {
     const lista = lerProdutosSimulados();
     const produto = lista.find((p) => p.id === id);
-    if (produto) produto.quantidade = quantidade;
+
+    if (produto) {
+      // Quando o produto volta ao estoque, a contagem de interessados recomeça do zero
+      if (produto.quantidade <= 0 && quantidade > 0) produto.interessados = 0;
+      produto.quantidade = quantidade;
+    }
+
     salvarProdutosSimulados(lista);
     return produto;
   }
@@ -295,7 +301,9 @@ async function salvarProduto(dados, foto, id = null) {
       const produto = lista.find((p) => p.id === id);
       if (!produto) throw new Error("Produto não encontrado.");
 
+      const estavaEsgotado = produto.quantidade <= 0;
       Object.assign(produto, dados);
+      if (estavaEsgotado && produto.quantidade > 0) produto.interessados = 0;
       if (imagem !== undefined) produto.imagem = imagem;
 
       salvarProdutosSimulados(lista);
@@ -364,7 +372,10 @@ async function atualizarStatusPedido(numero, status) {
       const produtos = lerProdutosSimulados();
       pedido.itens.forEach((item) => {
         const produto = produtos.find((p) => p.id === item.produtoId || p.nome === item.nome);
-        if (produto) produto.quantidade += item.quantidade;
+          if (produto) {
+          if (produto.quantidade <= 0 && item.quantidade > 0) produto.interessados = 0;
+          produto.quantidade += item.quantidade;
+        }
       });
       salvarProdutosSimulados(produtos);
 
@@ -1007,4 +1018,26 @@ async function conferirBairroPeloCep(cep, bairro) {
   }
 
   return true;
+}
+
+/* ---------- Interesse em produto esgotado ("Quero este doce") ---------- */
+// Só conta quantas pessoas querem o produto: não guarda nome nem telefone.
+async function registrarInteresse(produtoId) {
+  if (!CONFIG.usarBackend) {
+    const lista = lerProdutosSimulados();
+    const produto = lista.find((p) => p.id === produtoId);
+
+    if (!produto) throw new Error("Produto não encontrado.");
+    if (produto.quantidade > 0) throw new Error("Este produto já está disponível.");
+
+    produto.interessados = (produto.interessados || 0) + 1;
+    salvarProdutosSimulados(lista);
+    return { interessados: produto.interessados };
+  }
+
+  const resposta = await fetch(`${CONFIG.apiUrl}/produtos/${produtoId}/interesse`, { method: "POST" });
+  if (!resposta.ok) {
+    throw new Error(await mensagemDeErro(resposta, "Não foi possível registrar o seu interesse."));
+  }
+  return resposta.json();
 }

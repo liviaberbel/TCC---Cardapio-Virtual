@@ -845,3 +845,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+.produto-interesse {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}

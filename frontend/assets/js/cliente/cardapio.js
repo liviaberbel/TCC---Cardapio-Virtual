@@ -46,16 +46,71 @@ function adicionarAoCarrinho(produto) {
 /* ---------- Cards ---------- */
 function atualizarBotao(botao, produto) {
   const esgotado = produto.quantidade <= 0;
-  const noLimite = !esgotado && quantidadeNoCarrinho(produto.id) >= produto.quantidade;
 
-  botao.disabled = esgotado || noLimite || !lojaAberta;
-  botao.textContent = esgotado
-    ? "Indisponível"
-    : !lojaAberta
-      ? "Loja fechada"
-      : noLimite
-        ? "Máximo no carrinho"
-        : "Adicionar";
+  // Produto esgotado: o botão vira "Quero este doce" (uma vez por dia em cada aparelho)
+  if (esgotado) {
+    const jaDemonstrou = jaDemonstrouInteresse(produto.id);
+    botao.disabled = jaDemonstrou;
+    botao.textContent = jaDemonstrou ? "Interesse enviado" : "Quero este doce";
+    return;
+  }
+
+    esquecerInteresse(produto.id);
+
+  const noLimite = quantidadeNoCarrinho(produto.id) >= produto.quantidade;
+
+  botao.disabled = noLimite || !lojaAberta;
+  botao.textContent = !lojaAberta
+    ? "Loja fechada"
+    : noLimite
+      ? "Máximo no carrinho"
+      : "Adicionar";
+}
+
+/* ---------- Interesse em produto esgotado ---------- */
+const CHAVE_INTERESSES = "interessesRegistrados";
+
+function lerInteresses() {
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_INTERESSES)) || {};
+  } catch {
+    return {};
+  }
+}
+
+// Cada pessoa (aparelho) pode demonstrar interesse uma vez por produto, por dia
+function jaDemonstrouInteresse(id) {
+  return lerInteresses()[id] === hojeISO();
+}
+
+// Se o produto voltou ao estoque, o interesse registrado antes deixa de valer
+function esquecerInteresse(id) {
+  const interesses = lerInteresses();
+
+  if (interesses[id]) {
+    delete interesses[id];
+    localStorage.setItem(CHAVE_INTERESSES, JSON.stringify(interesses));
+  }
+}
+
+async function demonstrarInteresse(produto, botao) {
+  botao.disabled = true;
+
+  try {
+    await registrarInteresse(produto.id);
+
+    const interesses = lerInteresses();
+    interesses[produto.id] = hojeISO();
+    localStorage.setItem(CHAVE_INTERESSES, JSON.stringify(interesses));
+
+    mostrarToast("Pronto! Avisamos a loja que você quer este doce.", "sucesso");
+  } catch (erro) {
+    mostrarToast(erro instanceof TypeError
+      ? "Não foi possível enviar agora. Tente novamente."
+      : erro.message, "erro");
+  }
+
+  atualizarBotao(botao, produto);
 }
 
 function criarCard(produto) {
@@ -99,7 +154,13 @@ function criarCard(produto) {
 
   const botao = card.querySelector(".botao");
   atualizarBotao(botao, produto);
-  botao.addEventListener("click", () => {
+    botao.addEventListener("click", () => {
+    // Produto esgotado: o clique registra o interesse, e não vai para o carrinho
+    if (produto.quantidade <= 0) {
+      demonstrarInteresse(produto, botao);
+      return;
+    }
+
     adicionarAoCarrinho(produto);
     atualizarBotao(botao, produto);
   });
