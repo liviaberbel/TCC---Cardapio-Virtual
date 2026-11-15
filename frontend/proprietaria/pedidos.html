@@ -81,7 +81,22 @@
       </button>
     </div>
     <div id="detalhes-corpo" class="dialogo__corpo"></div>
+
+    <div class="dialogo__rodape">
+      <label class="dialogo__papel">
+        <span>Papel</span>
+        <select id="papel-comanda">
+          <option value="a4">Folha comum (A4)</option>
+          <option value="bobina">Bobina 80 mm</option>
+        </select>
+      </label>
+      <button type="button" id="btn-imprimir" class="botao botao--pequeno">
+        <i class="bi bi-printer"></i> Imprimir / salvar em PDF
+      </button>
+    </div>
   </dialog>
+
+  <section id="comanda" class="comanda" aria-hidden="true"></section>
 
   <script src="../assets/js/config.js"></script>
   <script src="../assets/js/utils.js"></script>

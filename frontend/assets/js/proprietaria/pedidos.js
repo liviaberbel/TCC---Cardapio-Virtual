@@ -95,6 +95,7 @@ function criarBlocoStatus(pedido) {
 }
 
 function abrirDetalhes(pedido) {
+  pedidoAberto = pedido;
   document.getElementById("detalhes-titulo").textContent = `Pedido #${pedido.numero}`;
 
   const corpo = document.getElementById("detalhes-corpo");
@@ -298,3 +299,148 @@ async function atualizarPedidos() {
 
 // Não atualiza enquanto a janela de detalhes de um pedido está aberta
 atualizarPeriodicamente(atualizarPedidos, 10, { pausarSe: () => dialogo.open });
+
+/* ---------- Comanda: impressão e PDF ---------- */
+let pedidoAberto = null;
+const CHAVE_PAPEL = "papelDaComanda";
+const comanda = document.getElementById("comanda");
+const seletorPapel = document.getElementById("papel-comanda");
+
+// Lembra o papel escolhido (folha comum ou bobina)
+seletorPapel.value = localStorage.getItem(CHAVE_PAPEL) || "a4";
+seletorPapel.addEventListener("change", () => {
+  localStorage.setItem(CHAVE_PAPEL, seletorPapel.value);
+});
+
+function linhaDaComanda(esquerda, direita, classe = "") {
+  const linha = document.createElement("div");
+  linha.className = `comanda__linha ${classe}`.trim();
+
+  const a = document.createElement("span");
+  const b = document.createElement("span");
+  a.textContent = esquerda;
+  b.textContent = direita;
+
+  linha.append(a, b);
+  return linha;
+}
+
+// Cria uma seção com título; o conteúdo pode ser texto ou elementos
+function secaoDaComanda(titulo, ...conteudo) {
+  const secao = document.createElement("section");
+  secao.className = "comanda__secao";
+
+  const cabecalho = document.createElement("h3");
+  cabecalho.textContent = titulo;
+  secao.appendChild(cabecalho);
+
+  conteudo.forEach((item) => {
+    if (typeof item === "string") {
+      const paragrafo = document.createElement("p");
+      paragrafo.textContent = item;
+      secao.appendChild(paragrafo);
+    } else {
+      secao.appendChild(item);
+    }
+  });
+
+  return secao;
+}
+
+function montarComanda(pedido) {
+  comanda.innerHTML = "";
+
+  const topo = document.createElement("header");
+  topo.className = "comanda__topo";
+
+  const loja = document.createElement("p");
+  loja.className = "comanda__loja";
+  loja.textContent = CONFIG.loja.nome;
+
+  const numero = document.createElement("h2");
+  numero.textContent = `Pedido #${pedido.numero}`;
+
+  const data = document.createElement("p");
+  data.textContent = formatarDataHora(pedido.data);
+
+  topo.append(loja, numero, data);
+
+  const cliente = secaoDaComanda("Cliente", pedido.cliente.nome, pedido.cliente.telefone);
+
+  const e = pedido.endereco;
+  const linhasEndereco = [
+    `${e.rua}, ${e.numero}${e.complemento ? ` - ${e.complemento}` : ""}`,
+    `${e.bairro} · Joanópolis${e.cep ? ` · CEP ${formatarCep(e.cep)}` : ""}`
+  ];
+  if (e.referencia) linhasEndereco.push(`Referência: ${e.referencia}`);
+  if (e.bairroConfirmado === false) {
+    linhasEndereco.push("ATENÇÃO: bairro não confirmado pelo CEP. Conferir o endereço.");
+  }
+  const entrega = secaoDaComanda("Entrega", ...linhasEndereco);
+
+  const listaItens = document.createElement("div");
+  pedido.itens.forEach((item) => {
+    listaItens.appendChild(linhaDaComanda(`${item.quantidade}x ${item.nome}`, formatarPreco(item.preco * item.quantidade)));
+  });
+  const itens = secaoDaComanda("Itens", listaItens);
+
+  const valores = document.createElement("div");
+  if (pedido.subtotal !== undefined) {
+    valores.appendChild(linhaDaComanda("Subtotal", formatarPreco(pedido.subtotal)));
+  }
+  if (pedido.desconto > 0) {
+    valores.appendChild(linhaDaComanda(`Desconto (cupom ${pedido.cupom})`, `− ${formatarPreco(pedido.desconto)}`));
+  }
+  if (pedido.taxaEntrega !== undefined) {
+    valores.appendChild(linhaDaComanda(
+      "Taxa de entrega",
+      pedido.taxaEntrega > 0 ? formatarPreco(pedido.taxaEntrega) : "Grátis"
+    ));
+  }
+  valores.appendChild(linhaDaComanda("TOTAL", formatarPreco(pedido.total), "comanda__total"));
+
+  const textosPagamento = [nomePagamento(pedido.pagamento.forma)];
+  if (pedido.pagamento.troco) textosPagamento.push(`Troco para: ${pedido.pagamento.troco}`);
+  const pagamento = secaoDaComanda("Pagamento", valores, ...textosPagamento);
+
+  comanda.append(topo, cliente, entrega, itens, pagamento);
+
+  if (pedido.observacoes) {
+    comanda.appendChild(secaoDaComanda("Observações", pedido.observacoes));
+  }
+
+  const rodape = document.createElement("p");
+  rodape.className = "comanda__rodape";
+  rodape.textContent = `Impresso em ${formatarDataHora(new Date().toISOString())}`;
+  comanda.appendChild(rodape);
+}
+
+function imprimirPedido(pedido) {
+  montarComanda(pedido);
+
+  // Tamanho do papel
+  const bobina = seletorPapel.value === "bobina";
+  comanda.classList.toggle("comanda--bobina", bobina);
+
+  let estilo = document.getElementById("estilo-pagina");
+  if (!estilo) {
+    estilo = document.createElement("style");
+    estilo.id = "estilo-pagina";
+    document.head.appendChild(estilo);
+  }
+  estilo.textContent = bobina
+    ? "@page { size: 80mm auto; margin: 3mm; }"
+    : "@page { size: A4; margin: 12mm; }";
+
+  // Durante a impressão, a página inteira some e só a comanda aparece
+  document.body.classList.add("imprimindo-comanda");
+  window.print();
+}
+
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("imprimindo-comanda");
+});
+
+document.getElementById("btn-imprimir").addEventListener("click", () => {
+  if (pedidoAberto) imprimirPedido(pedidoAberto);
+});

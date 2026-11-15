@@ -360,3 +360,49 @@ function mostrarToast(texto, tipo = "sucesso", duracaoMs) {
     area.firstElementChild.remove();
   }
 }
+
+/* ---------- Tamanho do produto: medida (g ou ml) e para quantas pessoas serve ---------- */
+// Produtos antigos tinham só "pesoGramas"; os novos têm "medida" e "unidadeMedida"
+function medidaDoProduto(produto) {
+  if (produto.medida !== undefined) {
+    return produto.medida
+      ? { valor: produto.medida, unidade: produto.unidadeMedida || "g" }
+      : null;
+  }
+
+  return produto.pesoGramas ? { valor: produto.pesoGramas, unidade: "g" } : null;
+}
+
+// De 1.000 em diante, mostra em kg ou litros (1500 g vira "1,5 kg")
+function formatarMedida(valor, unidade) {
+  if (valor >= 1000) {
+    const texto = (valor / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+    return `${texto} ${unidade === "ml" ? "L" : "kg"}`;
+  }
+
+  return `${valor} ${unidade}`;
+}
+
+function formatarPorcoes(produto) {
+  const min = produto.pessoasMin;
+  const max = produto.pessoasMax;
+
+  if (!min) return "";
+  if (max && max > min) return `serve de ${min} a ${max} pessoas`;
+  return min === 1 ? "serve 1 pessoa" : `serve ${min} pessoas`;
+}
+
+// Texto do tamanho para o cardápio e para a lista: "≈ 300 ml · serve 2 pessoas"
+function descreverTamanho(produto, { aproximado = true } = {}) {
+  const partes = [];
+
+  const medida = medidaDoProduto(produto);
+  if (medida) {
+    partes.push(`${aproximado ? "≈ " : ""}${formatarMedida(medida.valor, medida.unidade)}`);
+  }
+
+  const porcoes = formatarPorcoes(produto);
+  if (porcoes) partes.push(porcoes);
+
+  return partes.join(" · ");
+}

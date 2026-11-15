@@ -135,11 +135,12 @@ function criarCard(produto) {
   card.querySelector(".card-produto__descricao").textContent = produto.descricao;
   card.querySelector(".card-produto__preco").textContent = formatarPreco(produto.preco);
 
-  const peso = card.querySelector(".card-produto__peso");
-  if (produto.pesoGramas) {
-    peso.textContent = `≈ ${produto.pesoGramas} g`;
+  const tamanho = card.querySelector(".card-produto__peso");
+  const textoTamanho = descreverTamanho(produto);
+  if (textoTamanho) {
+    tamanho.textContent = textoTamanho;
   } else {
-    peso.remove();
+    tamanho.remove();
   }
 
   const selo = card.querySelector(".selo");

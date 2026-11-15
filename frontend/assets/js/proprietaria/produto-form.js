@@ -6,7 +6,6 @@ const campos = formulario.elements;
 const campoFoto = document.getElementById("foto");
 const areaPreview = document.getElementById("foto-preview");
 const botaoSalvar = document.getElementById("btn-salvar");
-const caixaErro = document.getElementById("erro-form");
 const botaoAjustarAtual = document.getElementById("btn-ajustar-atual");
 const botaoCancelarFoto = document.getElementById("btn-cancelar-foto");
 
@@ -44,8 +43,6 @@ function restaurarPreview() {
 }
 
 async function abrirEditor(origem, mensagemDeErro) {
-  caixaErro.hidden = true;
-
   try {
     await abrirEditorFoto(origem);
     areaPreview.hidden = true;
@@ -57,7 +54,6 @@ async function abrirEditor(origem, mensagemDeErro) {
 }
 
 campoFoto.addEventListener("change", () => {
-  caixaErro.hidden = true;
   const arquivo = campoFoto.files[0];
   if (!arquivo) return;
 
@@ -128,7 +124,12 @@ async function prepararEdicao() {
     campos.descricao.value = produto.descricao || "";
     campos.preco.value = produto.preco;
     campos.quantidade.value = produto.quantidade;
-    campos.pesoGramas.value = produto.pesoGramas ?? "";
+
+    const medida = medidaDoProduto(produto);
+    campos.medida.value = medida ? medida.valor : "";
+    campos.unidadeMedida.value = medida ? medida.unidade : "g";
+    campos.pessoasMin.value = produto.pessoasMin ?? "";
+    campos.pessoasMax.value = produto.pessoasMax ?? "";
 
     validadeOriginal = (produto.validade || "").slice(0, 10);
     campos.validade.value = validadeOriginal;
@@ -147,9 +148,14 @@ async function prepararEdicao() {
 /* ---------- Salvar ---------- */
 formulario.addEventListener("submit", async (evento) => {
   evento.preventDefault();
-  caixaErro.hidden = true;
 
-  const textoPeso = campos.pesoGramas.value.trim();
+  const textoMedida = campos.medida.value.trim();
+  const textoMin = campos.pessoasMin.value.trim();
+  const textoMax = campos.pessoasMax.value.trim();
+
+  const medida = textoMedida ? Number.parseInt(textoMedida, 10) : null;
+  const pessoasMin = textoMin ? Number.parseInt(textoMin, 10) : null;
+  const pessoasMax = textoMax ? Number.parseInt(textoMax, 10) : null;
 
   const dados = {
     nome: campos.nome.value.trim(),
@@ -157,7 +163,10 @@ formulario.addEventListener("submit", async (evento) => {
     descricao: campos.descricao.value.trim(),
     preco: Number.parseFloat(campos.preco.value),
     quantidade: Number.parseInt(campos.quantidade.value, 10),
-    pesoGramas: textoPeso ? Number.parseInt(textoPeso, 10) : null,
+    medida,
+    unidadeMedida: medida !== null ? campos.unidadeMedida.value : null,
+    pessoasMin,
+    pessoasMax: pessoasMin !== null ? pessoasMax : null,
     validade: campos.validade.value || null
   };
 
@@ -166,8 +175,23 @@ formulario.addEventListener("submit", async (evento) => {
     return;
   }
 
-  if (dados.pesoGramas !== null && (Number.isNaN(dados.pesoGramas) || dados.pesoGramas < 1 || dados.pesoGramas > 5000)) {
-    mostrarErro("O peso deve ser um número de 1 a 5000 gramas.");
+  if (medida !== null && (Number.isNaN(medida) || medida < 1 || medida > 5000)) {
+    mostrarErro("A quantidade aproximada deve ser um número de 1 a 5000.");
+    return;
+  }
+
+  if (pessoasMin !== null && (Number.isNaN(pessoasMin) || pessoasMin < 1 || pessoasMin > 100)) {
+    mostrarErro("Informe para quantas pessoas o produto serve (de 1 a 100).");
+    return;
+  }
+
+  if (pessoasMax !== null && pessoasMin === null) {
+    mostrarErro("Preencha também o primeiro número de “Serve quantas pessoas” (o “até” sozinho não vale).");
+    return;
+  }
+
+  if (pessoasMax !== null && (Number.isNaN(pessoasMax) || pessoasMax <= pessoasMin || pessoasMax > 100)) {
+    mostrarErro("O “até” deve ser maior que o primeiro número e, no máximo, 100.");
     return;
   }
 

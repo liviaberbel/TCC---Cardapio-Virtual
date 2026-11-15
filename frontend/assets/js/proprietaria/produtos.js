@@ -56,8 +56,9 @@ function criarLinha(produto) {
     </td>`;
 
   linha.querySelector(".produto-nome").textContent = produto.nome;
+  const tamanho = descreverTamanho(produto, { aproximado: false });
   linha.querySelector(".produto-categoria").textContent =
-    produto.categoria + (produto.pesoGramas ? ` · ${produto.pesoGramas} g` : "");
+    produto.categoria + (tamanho ? ` · ${tamanho}` : "");
   linha.querySelector(".produto-preco").textContent = formatarPreco(produto.preco);
   linha.querySelector('[data-acao="editar"]').href = `produto-form.html?id=${produto.id}`;
 
