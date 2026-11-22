@@ -2,6 +2,7 @@ const corpoTabela = document.getElementById("tabela-pedidos");
 const semPedidos = document.getElementById("sem-pedidos");
 const erroPedidos = document.getElementById("erro-pedidos");
 const campoBusca = document.getElementById("busca-pedidos");
+const filtroStatus = document.getElementById("filtro-status");
 const dialogo = document.getElementById("detalhes-pedido");
 
 const nomesPagamento = {
@@ -11,11 +12,20 @@ const nomesPagamento = {
   dinheiro: "Dinheiro"
 };
 
-let todosPedidos = [];
+// Status que ainda precisam de atenção da proprietária
+const ANDAMENTO = ["recebido", "preparo", "entrega"];
 
-function formatarDataHora(dataIso) {
-  return new Date(dataIso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-}
+// Texto do botão rápido da tabela, conforme a próxima etapa
+const ROTULOS_AVANCAR = {
+  preparo: "Iniciar preparo",
+  entrega: "Saiu para entrega",
+  entregue: "Marcar como entregue"
+};
+
+const tituloOriginal = document.title;
+
+let todosPedidos = [];
+let pedidoAberto = null; // pedido que está na janela de detalhes
 
 function nomePagamento(forma) {
   return nomesPagamento[forma] || forma;
@@ -52,6 +62,7 @@ function criarLinhaDupla(esquerda, direita, classe) {
   return linha;
 }
 
+// Muda o status pela janela de detalhes e reabre a janela já atualizada
 async function mudarStatus(pedido, novoStatus) {
   try {
     await atualizarStatusPedido(pedido.numero, novoStatus);
@@ -120,12 +131,12 @@ function abrirDetalhes(pedido) {
   entrega.appendChild(criarParagrafo(`${e.rua}, ${e.numero}${e.complemento ? ` - ${e.complemento}` : ""}`));
   entrega.appendChild(criarParagrafo(e.bairro));
   entrega.appendChild(criarParagrafo(`Joanópolis${e.cep ? ` · CEP ${formatarCep(e.cep)}` : ""}`));
-    if (e.bairroConfirmado === false) {
+  if (e.referencia) entrega.appendChild(criarParagrafo(`Referência: ${e.referencia}`));
+  if (e.bairroConfirmado === false) {
     entrega.appendChild(criarParagrafo(
       "Atenção: o bairro foi informado pelo cliente e não pôde ser confirmado pelo CEP. Confira o endereço antes de entregar."
     ));
   }
-  if (e.referencia) entrega.appendChild(criarParagrafo(`Referência: ${e.referencia}`));
 
   // Pagamento
   const pagamento = criarBloco("Pagamento");
@@ -146,6 +157,7 @@ function abrirDetalhes(pedido) {
   });
   itens.appendChild(lista);
 
+  // Valores
   const blocos = [criarBlocoStatus(pedido), cliente, entrega, pagamento, itens];
 
   if (pedido.desconto > 0) {
@@ -185,6 +197,26 @@ dialogo.addEventListener("click", (evento) => {
 });
 
 /* ---------- Tabela ---------- */
+// Avança o pedido uma etapa direto pela tabela
+async function avancarDaTabela(pedido, proximo, botao) {
+  if (proximo === "entregue" &&
+      !confirm(`Marcar o pedido #${pedido.numero} como entregue? Depois disso, o status não muda mais.`)) {
+    return;
+  }
+
+  botao.disabled = true; // evita o clique duplo, que pularia uma etapa
+
+  try {
+    await atualizarStatusPedido(pedido.numero, proximo);
+    pedido.status = proximo;
+    aplicarBusca();
+    mostrarToast(`Pedido #${pedido.numero}: ${STATUS_PEDIDO[proximo].texto}`, "sucesso");
+  } catch (erro) {
+    botao.disabled = false;
+    mostrarToast(erro.message, "erro");
+  }
+}
+
 function criarLinha(pedido) {
   const linha = document.createElement("tr");
 
@@ -200,17 +232,42 @@ function criarLinha(pedido) {
     linha.appendChild(celula);
   });
 
-    const celulaStatus = document.createElement("td");
-    celulaStatus.appendChild(criarSeloStatus(pedido.status));
-    linha.appendChild(celulaStatus);
+  const celulaStatus = document.createElement("td");
+  celulaStatus.appendChild(criarSeloStatus(pedido.status));
+  linha.appendChild(celulaStatus);
 
   const celulaAcoes = document.createElement("td");
-  const botao = document.createElement("button");
-  botao.type = "button";
-  botao.className = "botao botao--contorno botao--pequeno";
-  botao.textContent = "Detalhes";
-  botao.addEventListener("click", () => abrirDetalhes(pedido));
-  celulaAcoes.appendChild(botao);
+  const acoes = document.createElement("div");
+  acoes.className = "acoes-linha";
+
+  // Botão rápido: leva o pedido para a próxima etapa
+  const proximo = STATUS_PEDIDO[pedido.status]?.proximo;
+  if (proximo) {
+    const avancar = document.createElement("button");
+    avancar.type = "button";
+    avancar.className = "botao botao--pequeno";
+    avancar.textContent = ROTULOS_AVANCAR[proximo] || "Avançar";
+    avancar.addEventListener("click", () => avancarDaTabela(pedido, proximo, avancar));
+    acoes.appendChild(avancar);
+  }
+
+  const detalhes = document.createElement("button");
+  detalhes.type = "button";
+  detalhes.className = "botao botao--contorno botao--pequeno";
+  detalhes.textContent = "Detalhes";
+  detalhes.addEventListener("click", () => abrirDetalhes(pedido));
+  acoes.appendChild(detalhes);
+
+  const imprimir = document.createElement("button");
+  imprimir.type = "button";
+  imprimir.className = "botao-icone";
+  imprimir.setAttribute("aria-label", "Imprimir comanda");
+  imprimir.title = "Imprimir comanda";
+  imprimir.innerHTML = `<i class="bi bi-printer"></i>`;
+  imprimir.addEventListener("click", () => imprimirPedido(pedido));
+  acoes.appendChild(imprimir);
+
+  celulaAcoes.appendChild(acoes);
   linha.appendChild(celulaAcoes);
 
   return linha;
@@ -224,26 +281,42 @@ function pedidoCombinaComBusca(pedido, termo) {
   return busca.split(/\s+/).every((palavra) => texto.includes(palavra));
 }
 
-const filtroStatus = document.getElementById("filtro-status");
+function pedidoEstaNoFiltro(pedido, filtro) {
+  if (!filtro) return true;
+  if (filtro === "andamento") return ANDAMENTO.includes(pedido.status);
+  return pedido.status === filtro;
+}
 
 function aplicarBusca() {
   const termo = campoBusca.value;
   const status = filtroStatus.value;
 
+  // Mostra no próprio filtro quantos pedidos estão em andamento
+  const opcaoAndamento = filtroStatus.querySelector('option[value="andamento"]');
+  if (opcaoAndamento) {
+    const total = todosPedidos.filter((pedido) => ANDAMENTO.includes(pedido.status)).length;
+    opcaoAndamento.textContent = `Em andamento (${total})`;
+  }
+
   const encontrados = todosPedidos.filter((pedido) =>
-    pedidoCombinaComBusca(pedido, termo) && (!status || pedido.status === status)
+    pedidoCombinaComBusca(pedido, termo) && pedidoEstaNoFiltro(pedido, status)
   );
 
   corpoTabela.innerHTML = "";
   encontrados.forEach((pedido) => corpoTabela.appendChild(criarLinha(pedido)));
 
-  semPedidos.textContent = termo.trim() || status
-    ? "Nenhum pedido encontrado para essa busca."
-    : "Nenhum pedido recebido ainda.";
+  let mensagem = "Nenhum pedido recebido ainda.";
+  if (status === "andamento" && termo.trim()) {
+    mensagem = "Nenhum pedido em andamento encontrado para essa busca. Escolha “Todos os status” para ver também os finalizados.";
+  } else if (status === "andamento") {
+    mensagem = "Nenhum pedido em andamento no momento.";
+  } else if (termo.trim() || status) {
+    mensagem = "Nenhum pedido encontrado para essa busca.";
+  }
+
+  semPedidos.textContent = mensagem;
   semPedidos.hidden = encontrados.length > 0;
 }
-
-filtroStatus.addEventListener("change", aplicarBusca);
 
 async function carregarPedidos() {
   erroPedidos.hidden = true;
@@ -257,51 +330,7 @@ async function carregarPedidos() {
   }
 }
 
-campoBusca.addEventListener("input", aplicarBusca);
-document.getElementById("btn-atualizar").addEventListener("click", carregarPedidos);
-
-carregarPedidos();
-
-/* ---------- Atualização automática e aviso de novo pedido ---------- */
-const avisoNovoPedido = document.getElementById("aviso-novo-pedido");
-const tituloOriginal = document.title;
-let temporizadorNovoPedido;
-
-function avisarNovoPedido(quantidade) {
-  mostrarToast(
-    quantidade === 1 ? "Chegou 1 novo pedido!" : `Chegaram ${quantidade} novos pedidos!`,
-    "info",
-    8000
-  );
-
-  // Se a aba está em segundo plano, o título chama a atenção
-  if (document.hidden) {
-    document.title = `(${quantidade}) Novo pedido · ${tituloOriginal}`;
-  }
-}
-
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) document.title = tituloOriginal;
-});
-
-async function atualizarPedidos() {
-  const pedidos = await listarPedidos();
-  if (!dadosMudaram("pedidos", pedidos)) return;
-
-  const maiorNumeroAntes = Math.max(0, ...todosPedidos.map((pedido) => pedido.numero));
-  const novos = pedidos.filter((pedido) => pedido.numero > maiorNumeroAntes).length;
-
-  todosPedidos = pedidos;
-  aplicarBusca();
-
-  if (novos > 0) avisarNovoPedido(novos);
-}
-
-// Não atualiza enquanto a janela de detalhes de um pedido está aberta
-atualizarPeriodicamente(atualizarPedidos, 10, { pausarSe: () => dialogo.open });
-
 /* ---------- Comanda: impressão e PDF ---------- */
-let pedidoAberto = null;
 const CHAVE_PAPEL = "papelDaComanda";
 const comanda = document.getElementById("comanda");
 const seletorPapel = document.getElementById("papel-comanda");
@@ -444,3 +473,44 @@ window.addEventListener("afterprint", () => {
 document.getElementById("btn-imprimir").addEventListener("click", () => {
   if (pedidoAberto) imprimirPedido(pedidoAberto);
 });
+
+/* ---------- Atualização automática e aviso de novo pedido ---------- */
+function avisarNovoPedido(quantidade) {
+  mostrarToast(
+    quantidade === 1 ? "Chegou 1 novo pedido!" : `Chegaram ${quantidade} novos pedidos!`,
+    "info",
+    8000
+  );
+
+  // Se a aba está em segundo plano, o título chama a atenção
+  if (document.hidden) {
+    document.title = `(${quantidade}) Novo pedido · ${tituloOriginal}`;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) document.title = tituloOriginal;
+});
+
+async function atualizarPedidos() {
+  const pedidos = await listarPedidos();
+  if (!dadosMudaram("pedidos", pedidos)) return;
+
+  const maiorNumeroAntes = Math.max(0, ...todosPedidos.map((pedido) => pedido.numero));
+  const novos = pedidos.filter((pedido) => pedido.numero > maiorNumeroAntes).length;
+
+  todosPedidos = pedidos;
+  aplicarBusca();
+
+  if (novos > 0) avisarNovoPedido(novos);
+}
+
+/* ---------- Início ---------- */
+campoBusca.addEventListener("input", aplicarBusca);
+filtroStatus.addEventListener("change", aplicarBusca);
+document.getElementById("btn-atualizar").addEventListener("click", carregarPedidos);
+
+carregarPedidos();
+
+// Não atualiza enquanto a janela de detalhes de um pedido está aberta
+atualizarPeriodicamente(atualizarPedidos, 10, { pausarSe: () => dialogo.open });
